@@ -1,12 +1,20 @@
 #include "SDL.h"
 #include "SDL_syswm.h"
+#include "as-camera-sdl/as-camera-sdl.h"
+#include "as-camera/as-camera-controller.hpp"
+#include "as/as-math-ops.hpp"
+#include "as/as-view.hpp"
 #include "bgfx-imgui/imgui_impl_bgfx.h"
 #include "bgfx/bgfx.h"
 #include "bgfx/platform.h"
-#include "bx/math.h"
 #include "file-ops.h"
 #include "imgui.h"
 #include "sdl-imgui/imgui_impl_sdl.h"
+
+#include <chrono>
+
+// provide type-safe way to represent seconds in floating point
+using fp_seconds = std::chrono::duration<float, std::chrono::seconds::period>;
 
 struct PosColorVertex
 {
@@ -118,16 +126,28 @@ int main(int argc, char** argv)
 
         bgfx::ProgramHandle program = bgfx::createProgram(vsh, fsh, true);
 
-        float cam_pitch = 0.0f;
-        float cam_yaw = 0.0f;
-        float rot_scale = 0.01f;
+        // initial camera position and orientation
+        asc::Camera camera{{0.0f, 0.0f, -5.0f}, 0.0f, 0.0f, 0.0f};
 
-        int prev_mouse_x = 0;
-        int prev_mouse_y = 0;
+        // initial mouse state
+        MouseState mouse_state = mouseState();
+
+        // camera control structure
+        asc::CameraControl camera_control{};
+
+        // camera properties
+        asc::CameraProperties camera_props{};
+        camera_props.rotate_speed = 0.01f;
+        camera_props.translate_speed = 1.0f;
+        camera_props.look_smoothness = 5.0f;
+
+        auto prev = std::chrono::steady_clock::now();
 
         for (bool quit = false; !quit;) {
             SDL_Event currentEvent;
             while (SDL_PollEvent(&currentEvent) != 0) {
+                updateCameraControlKeyboardSdl(
+                    currentEvent, camera_control, camera_props);
                 ImGui_ImplSDL2_ProcessEvent(&currentEvent);
                 if (currentEvent.type == SDL_QUIT) {
                     quit = true;
@@ -142,41 +162,36 @@ int main(int argc, char** argv)
             ImGui::ShowDemoWindow(); // your drawing here
             ImGui::Render();
 
-            // simple input code for orbit camera
-            int mouse_x, mouse_y;
-            const int buttons = SDL_GetGlobalMouseState(&mouse_x, &mouse_y);
-            if ((buttons & SDL_BUTTON(SDL_BUTTON_LEFT)) != 0) {
-                int delta_x = mouse_x - prev_mouse_x;
-                int delta_y = mouse_y - prev_mouse_y;
+            updateCameraControlMouseSdl(
+                camera_control, camera_props, mouse_state);
 
-                cam_yaw += float(-delta_x) * rot_scale;
-                cam_pitch += float(-delta_y) * rot_scale;
-            }
+            auto now = std::chrono::steady_clock::now();
+            auto delta = now - prev;
+            prev = now;
 
-            prev_mouse_x = mouse_x;
-            prev_mouse_y = mouse_y;
+            float dt = fp_seconds(delta).count();
 
-            float cam_rotation[16];
-            bx::mtxRotateXYZ(cam_rotation, cam_pitch, cam_yaw, 0.0f);
-
-            float cam_translation[16];
-            bx::mtxTranslate(cam_translation, 0.0f, 0.0f, -5.0f);
-
-            float cam_transform[16];
-            bx::mtxMul(cam_transform, cam_translation, cam_rotation);
+            asc::update_camera(
+                camera, camera_control, camera_props, dt,
+                asc::Handedness::Left);
 
             float view[16];
-            bx::mtxInverse(view, cam_transform);
+            as::mat::to_arr(camera.view(), view);
 
             float proj[16];
-            bx::mtxProj(
-                proj, 60.0f, float(width) / float(height), 0.1f, 100.0f,
-                bgfx::getCaps()->homogeneousDepth);
+            as::mat::to_arr(
+                as::view::perspective_d3d_lh(
+                    as::deg_to_rad(60.0f), float(width) / float(height), 0.1f,
+                    100.0f),
+                proj);
 
             bgfx::setViewTransform(0, view, proj);
 
+            as::mat4_t rot = as::mat4_t::identity();
+
             float model[16];
-            bx::mtxIdentity(model);
+            as::mat::to_arr(rot, model);
+
             bgfx::setTransform(model);
 
             bgfx::setVertexBuffer(0, vbh);

@@ -6,13 +6,18 @@ find_package(SDL2 REQUIRED CONFIG)
 find_package(bgfx REQUIRED CONFIG)
 find_package(imgui REQUIRED CONFIG)
 
+include(FetchContent)
+FetchContent_Declare(
+    as-camera GIT_REPOSITORY https://github.com/pr0g/as-camera.git)
+FetchContent_MakeAvailable(as-camera)
+
 add_executable(${PROJECT_NAME})
 target_sources(
     ${PROJECT_NAME} PRIVATE
     main.cpp
     sdl-imgui/imgui_impl_sdl.cpp
     bgfx-imgui/imgui_impl_bgfx.cpp
-)
+    as-camera-sdl/as-camera-sdl.cpp)
 
 target_link_libraries(
     ${PROJECT_NAME} PRIVATE
@@ -20,7 +25,11 @@ target_link_libraries(
     SDL2::SDL2main
     bgfx::bgfx
     imgui::imgui
-)
+    as-camera)
+
+# required by as library
+target_compile_definitions(
+    ${PROJECT_NAME} PRIVATE -DAS_PRECISION_FLOAT -DAS_COL_MAJOR)
 
 set_target_properties(
     ${PROJECT_NAME} PROPERTIES CXX_STANDARD 11)
