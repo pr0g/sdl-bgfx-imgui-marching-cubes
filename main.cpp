@@ -7,14 +7,10 @@
 #include "bgfx-imgui/imgui_impl_bgfx.h"
 #include "bgfx/bgfx.h"
 #include "bgfx/platform.h"
+#include "bx/timer.h"
 #include "file-ops.h"
 #include "imgui.h"
 #include "sdl-imgui/imgui_impl_sdl.h"
-
-#include <chrono>
-
-// provide type-safe way to represent seconds in floating point
-using fp_seconds = std::chrono::duration<float, std::chrono::seconds::period>;
 
 struct PosColorVertex
 {
@@ -53,6 +49,7 @@ int main(int argc, char** argv)
     } else {
         const int width = 800;
         const int height = 600;
+        const float aspect = float(width) / float(height);
         SDL_Window* window = SDL_CreateWindow(
             argv[0], SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width,
             height, SDL_WINDOW_SHOWN);
@@ -78,17 +75,24 @@ int main(int argc, char** argv)
         pd.nwh = wmi.info.cocoa.window;
 #endif // BX_PLATFORM_WINDOWS ? BX_PLATFORM_OSX
 
-        bgfx::Init bgfxInit;
-        bgfxInit.type = bgfx::RendererType::Count; // auto choose renderer
-        bgfxInit.resolution.width = width;
-        bgfxInit.resolution.height = height;
-        bgfxInit.resolution.reset = BGFX_RESET_VSYNC;
-        bgfxInit.platformData = pd;
-        bgfx::init(bgfxInit);
+        bgfx::Init bgfx_init;
+        bgfx_init.type = bgfx::RendererType::Count; // auto choose renderer
+        bgfx_init.resolution.width = width;
+        bgfx_init.resolution.height = height;
+        bgfx_init.resolution.reset = BGFX_RESET_VSYNC;
+        bgfx_init.platformData = pd;
+        bgfx::init(bgfx_init);
 
         bgfx::setViewClear(
             0, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, 0x443355FF, 1.0f, 0);
         bgfx::setViewRect(0, 0, 0, width, height);
+
+        const float gizmo_offset_percent = 0.85f;
+        const float gizmo_size_percent = 0.1f;
+        bgfx::setViewClear(1, BGFX_CLEAR_DEPTH);
+        bgfx::setViewRect(
+            1, width * gizmo_offset_percent, height * gizmo_offset_percent,
+            width * gizmo_size_percent, height * gizmo_size_percent);
 
         ImGui::CreateContext();
         ImGuiIO& io = ImGui::GetIO();
@@ -100,14 +104,14 @@ int main(int argc, char** argv)
         ImGui_ImplSDL2_InitForMetal(window);
 #endif // BX_PLATFORM_WINDOWS ? BX_PLATFORM_OSX
 
-        bgfx::VertexLayout posColVertLayout;
-        posColVertLayout.begin()
+        bgfx::VertexLayout pos_col_vert_layout;
+        pos_col_vert_layout.begin()
             .add(bgfx::Attrib::Position, 3, bgfx::AttribType::Float)
             .add(bgfx::Attrib::Color0, 4, bgfx::AttribType::Uint8, true)
             .end();
         bgfx::VertexBufferHandle vbh = bgfx::createVertexBuffer(
             bgfx::makeRef(cube_vertices, sizeof(cube_vertices)),
-            posColVertLayout);
+            pos_col_vert_layout);
         bgfx::IndexBufferHandle ibh = bgfx::createIndexBuffer(
             bgfx::makeRef(cube_tri_list, sizeof(cube_tri_list)));
 
@@ -141,7 +145,7 @@ int main(int argc, char** argv)
         camera_props.translate_speed = 1.0f;
         camera_props.look_smoothness = 5.0f;
 
-        auto prev = std::chrono::steady_clock::now();
+        auto prev = bx::getHPCounter();
 
         for (bool quit = false; !quit;) {
             SDL_Event currentEvent;
@@ -165,39 +169,74 @@ int main(int argc, char** argv)
             updateCameraControlMouseSdl(
                 camera_control, camera_props, mouse_state);
 
-            auto now = std::chrono::steady_clock::now();
+            auto now = bx::getHPCounter();
             auto delta = now - prev;
             prev = now;
 
-            float dt = fp_seconds(delta).count();
+            float dt = delta / (float)bx::getHPFrequency();
 
             asc::update_camera(
                 camera, camera_control, camera_props, dt,
                 asc::Handedness::Left);
 
-            float view[16];
-            as::mat::to_arr(camera.view(), view);
+            // main cube
+            {
+                float view[16];
+                as::mat::to_arr(camera.view(), view);
 
-            float proj[16];
-            as::mat::to_arr(
-                as::view::perspective_d3d_lh(
-                    as::deg_to_rad(60.0f), float(width) / float(height), 0.1f,
-                    100.0f),
-                proj);
+                float proj[16];
+                as::mat::to_arr(
+                    as::view::perspective_d3d_lh(
+                        as::deg_to_rad(60.0f), float(width) / float(height),
+                        0.1f, 100.0f),
+                    proj);
 
-            bgfx::setViewTransform(0, view, proj);
+                bgfx::setViewTransform(0, view, proj);
 
-            as::mat4_t rot = as::mat4_t::identity();
+                as::mat4_t rot = as::mat4_t::identity();
 
-            float model[16];
-            as::mat::to_arr(rot, model);
+                float model[16];
+                as::mat::to_arr(rot, model);
 
-            bgfx::setTransform(model);
+                bgfx::setTransform(model);
 
-            bgfx::setVertexBuffer(0, vbh);
-            bgfx::setIndexBuffer(ibh);
+                bgfx::setVertexBuffer(0, vbh);
+                bgfx::setIndexBuffer(ibh);
 
-            bgfx::submit(0, program);
+                bgfx::submit(0, program);
+            }
+
+            // gizmo cube
+            {
+                float view[16];
+                as::mat::to_arr(
+                    as::mat4::from_mat3_vec3(
+                        as::mat3::from_mat4(camera.view()),
+                        as::vec3_t::axis_z(10.0f)),
+                    view);
+
+                const float extent = 10.0f * aspect;
+
+                float proj[16];
+                as::mat::to_arr(
+                    as::view::ortho_d3d_lh(
+                        -extent, extent, -10.0f, 10.0f, 0.001f, 100.0f),
+                    proj);
+
+                bgfx::setViewTransform(1, view, proj);
+
+                as::mat4_t rot = as::mat4::from_mat3(as::mat3::scale(4.0f));
+
+                float model[16];
+                as::mat::to_arr(rot, model);
+
+                bgfx::setTransform(model);
+
+                bgfx::setVertexBuffer(0, vbh);
+                bgfx::setIndexBuffer(ibh);
+
+                bgfx::submit(1, program);
+            }
 
             bgfx::frame();
         }
