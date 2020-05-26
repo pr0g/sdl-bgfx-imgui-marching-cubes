@@ -27,4 +27,6 @@ IndentCaseLabels: true
 SortIncludes: true
 IncludeBlocks: Preserve
 FixNamespaceComments: true
+AlignOperands: AlignAfterOperator
+BreakBeforeBinaryOperators: NonAssignment
 ...
