@@ -84,7 +84,7 @@ int main(int argc, char** argv)
         bgfx::init(bgfx_init);
 
         bgfx::setViewClear(
-            0, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, 0x443355FF, 1.0f, 0);
+            0, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, 0x6495EDFF, 1.0f, 0);
         bgfx::setViewRect(0, 0, 0, width, height);
 
         const float gizmo_offset_percent = 0.85f;
