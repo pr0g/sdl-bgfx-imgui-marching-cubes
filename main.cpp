@@ -7,9 +7,12 @@
 #include "bgfx-imgui/imgui_impl_bgfx.h"
 #include "bgfx/bgfx.h"
 #include "bgfx/platform.h"
+#include "bx/math.h"
 #include "bx/timer.h"
 #include "file-ops.h"
+#include "hsv-rgb.h"
 #include "imgui.h"
+#include "marching-cubes/marching-cubes.h"
 #include "sdl-imgui/imgui_impl_sdl.h"
 
 struct PosColorVertex
@@ -109,6 +112,7 @@ int main(int argc, char** argv)
             .add(bgfx::Attrib::Position, 3, bgfx::AttribType::Float)
             .add(bgfx::Attrib::Color0, 4, bgfx::AttribType::Uint8, true)
             .end();
+
         bgfx::VertexBufferHandle vbh = bgfx::createVertexBuffer(
             bgfx::makeRef(cube_vertices, sizeof(cube_vertices)),
             pos_col_vert_layout);
@@ -130,14 +134,19 @@ int main(int argc, char** argv)
 
         bgfx::ProgramHandle program = bgfx::createProgram(vsh, fsh, true);
 
+        asc::Camera camera{};
         // initial camera position and orientation
-        asc::Camera camera{{0.0f, 0.0f, -5.0f}, 0.0f, 0.0f, 0.0f};
+        camera.look_at = as::vec3_t{22.84f, 16.43f, 37.43f};
+        camera.pitch = 0.3f;
+        camera.yaw = 3.6f;
 
         // initial mouse state
         MouseState mouse_state = mouseState();
 
         // camera control structure
         asc::CameraControl camera_control{};
+        camera_control.pitch = camera.pitch;
+        camera_control.yaw = camera.yaw;
 
         // camera properties
         asc::CameraProperties camera_props{};
@@ -187,11 +196,54 @@ int main(int argc, char** argv)
                 float proj[16];
                 as::mat::to_arr(
                     as::view::perspective_d3d_lh(
-                        as::deg_to_rad(60.0f), float(width) / float(height),
+                        as::deg_to_rad(35.0f), float(width) / float(height),
                         0.1f, 100.0f),
                     proj);
 
                 bgfx::setViewTransform(0, view, proj);
+
+                //
+
+                const int dimension = 15;
+                auto points = create_point_volume(dimension);
+                auto cells = create_cell_volume(dimension);
+
+                generate_point_data(
+                    points, dimension, /*offset*/ as::vec3_t::zero(),
+                    /*scale*/ 14.0f);
+                generate_cell_data(cells, points, dimension);
+
+                auto triangles = march(cells, dimension, 4.0f /*threshold*/);
+
+                uint32_t maxVertices = 32 << 10;
+                bgfx::TransientVertexBuffer tvb;
+                bgfx::allocTransientVertexBuffer(
+                    &tvb, maxVertices, pos_col_vert_layout);
+
+                PosColorVertex* vertex = (PosColorVertex*)tvb.data;
+
+                const float increment = 360.0f / (triangles.size() * 3);
+                float h = 0.0f;
+
+                int vertCount = 0;
+                for (const auto& tri : triangles) {
+                    for (const auto& vert : tri.verts_) {
+                        vertex->x = vert.x;
+                        vertex->y = vert.y;
+                        vertex->z = vert.z;
+
+                        float r, g, b;
+                        HSVtoRGB(r, g, b, h, 1.0f, 1.0f);
+                        uint8_t ri = r * 255;
+                        uint8_t gi = g * 255;
+                        uint8_t bi = b * 255;
+
+                        vertex->abgr = ri | gi << 8 | bi << 16 | 0xff << 24;
+                        vertex++;
+                        vertCount++;
+                        h += increment;
+                    }
+                }
 
                 as::mat4_t rot = as::mat4_t::identity();
 
@@ -200,10 +252,12 @@ int main(int argc, char** argv)
 
                 bgfx::setTransform(model);
 
-                bgfx::setVertexBuffer(0, vbh);
-                bgfx::setIndexBuffer(ibh);
+                bgfx::setVertexBuffer(0, &tvb, 0, vertCount);
 
                 bgfx::submit(0, program);
+
+                destroy_cell_volume(cells, dimension);
+                destroy_point_volume(points, dimension);
             }
 
             // gizmo cube

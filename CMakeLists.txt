@@ -17,7 +17,8 @@ target_sources(
     main.cpp
     sdl-imgui/imgui_impl_sdl.cpp
     bgfx-imgui/imgui_impl_bgfx.cpp
-    as-camera-sdl/as-camera-sdl.cpp)
+    as-camera-sdl/as-camera-sdl.cpp
+    marching-cubes/marching-cubes.cpp)
 
 target_link_libraries(
     ${PROJECT_NAME} PRIVATE
