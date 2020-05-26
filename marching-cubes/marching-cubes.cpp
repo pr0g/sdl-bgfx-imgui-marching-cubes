@@ -2,6 +2,9 @@
 
 #include "glm/gtc/noise.hpp"
 
+namespace mc
+{
+
 extern int g_tri_table[256][16];
 extern int g_edge_table[256];
 
@@ -19,27 +22,27 @@ static as::vec3_t interpolate(
     return v;
 }
 
-point_t*** create_point_volume(const int dimension)
+Point*** createPointVolume(const int dimension)
 {
-    point_t*** points = new point_t**[dimension];
+    Point*** points = new Point**[dimension];
     for (int z = 0; z < dimension; ++z) {
-        points[z] = new point_t*[dimension];
+        points[z] = new Point*[dimension];
         for (int y = 0; y < dimension; ++y) {
-            points[z][y] = new point_t[dimension];
+            points[z][y] = new Point[dimension];
         }
     }
 
     return points;
 }
 
-cell_t*** create_cell_volume(const int dimension)
+Cell*** createCellVolume(const int dimension)
 {
     const int cell_dim = dimension - 1;
-    cell_t*** cells = new cell_t**[cell_dim];
+    Cell*** cells = new Cell**[cell_dim];
     for (int z = 0; z < cell_dim; ++z) {
-        cells[z] = new cell_t*[cell_dim];
+        cells[z] = new Cell*[cell_dim];
         for (int y = 0; y < cell_dim; ++y) {
-            cells[z][y] = new cell_t[cell_dim];
+            cells[z][y] = new Cell[cell_dim];
         }
     }
 
@@ -48,8 +51,8 @@ cell_t*** create_cell_volume(const int dimension)
 
 static const float g_threshold_scale = 10.0f;
 
-void generate_point_data(
-    point_t*** points, const int dimension, const as::vec3_t& offset,
+void generatePointData(
+    Point*** points, const int dimension, const as::vec3_t& offset,
     const float scale)
 {
     as::vec3_t center{7.5f, 7.5f, 7.5f};
@@ -84,7 +87,7 @@ void generate_point_data(
     }
 }
 
-void generate_cell_data(cell_t*** cells, point_t*** points, const int dimension)
+void generateCellData(Cell*** cells, Point*** points, const int dimension)
 {
     const int cell_dim = dimension - 1;
     for (int z = 0; z < cell_dim; ++z) {
@@ -105,7 +108,7 @@ void generate_cell_data(cell_t*** cells, point_t*** points, const int dimension)
     }
 }
 
-void destroy_point_volume(point_t*** points, const int dimension)
+void destroyPointVolume(Point*** points, const int dimension)
 {
     for (int z = 0; z < dimension; ++z) {
         for (int y = 0; y < dimension; ++y) {
@@ -116,7 +119,7 @@ void destroy_point_volume(point_t*** points, const int dimension)
     delete[] points;
 }
 
-void destroy_cell_volume(cell_t*** cells, const int dimension)
+void destroyCellVolume(Cell*** cells, const int dimension)
 {
     const int cell_dim = dimension - 1;
     for (int z = 0; z < cell_dim; ++z) {
@@ -128,16 +131,16 @@ void destroy_cell_volume(cell_t*** cells, const int dimension)
     delete[] cells;
 }
 
-std::vector<triangle_t> march(
-    cell_t*** cells, const int dimension, const float threshold)
+std::vector<Triangle> march(
+    Cell*** cells, const int dimension, const float threshold)
 {
     const int cell_dim = dimension - 1;
-    std::vector<triangle_t> triangles;
+    std::vector<Triangle> triangles;
 
     for (int z = 0; z < cell_dim; ++z) {
         for (int y = 0; y < cell_dim; ++y) {
             for (int x = 0; x < cell_dim; ++x) {
-                const cell_t& cell = cells[z][y][x];
+                const Cell& cell = cells[z][y][x];
 
                 uint8_t cube_index = 0;
                 for (as::index_t i = 0; i < 8; i++) {
@@ -150,14 +153,12 @@ std::vector<triangle_t> march(
                     continue;
                 }
 
-                as::vec3_t vertList[12];
-
-                const int edges = g_edge_table[cube_index];
-
                 const int point_table[][2] = {{0, 1}, {1, 2}, {2, 3}, {3, 0},
                                               {4, 5}, {5, 6}, {6, 7}, {7, 4},
                                               {0, 4}, {1, 5}, {2, 6}, {3, 7}};
 
+                as::vec3_t vertList[12];
+                const int edges = g_edge_table[cube_index];
                 for (int64_t i = 0; i < 12; i++) {
                     if ((edges & (1 << i)) != 0) {
                         int p1 = point_table[i][0];
@@ -467,3 +468,5 @@ int g_tri_table[256][16] = {
     {0, 9, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
     {0, 3, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
     {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1}};
+
+} // namespace mc

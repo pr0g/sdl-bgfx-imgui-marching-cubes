@@ -4,30 +4,35 @@
 
 #include <vector>
 
-struct point_t
+namespace mc
+{
+
+struct Point
 {
     float val_;
     as::vec3_t position_;
 };
 
-struct cell_t
+struct Cell
 {
-    point_t points_[8];
+    Point points_[8];
 };
 
-struct triangle_t
+struct Triangle
 {
     as::vec3_t verts_[3];
 };
 
-point_t*** create_point_volume(int dimension);
-cell_t*** create_cell_volume(int dimension);
+Point*** createPointVolume(int dimension);
+Cell*** createCellVolume(int dimension);
 
-void generate_point_data(
-    point_t*** points, int dimension, const as::vec3_t& offset, float scale);
-void generate_cell_data(cell_t*** cells, point_t*** points, int dimension);
+void generatePointData(
+    Point*** points, int dimension, const as::vec3_t& offset, float scale);
+void generateCellData(Cell*** cells, Point*** points, int dimension);
 
-void destroy_point_volume(point_t*** points, int dimension);
-void destroy_cell_volume(cell_t*** cells, int dimension);
+void destroyPointVolume(Point*** points, int dimension);
+void destroyCellVolume(Cell*** cells, int dimension);
 
-std::vector<triangle_t> march(cell_t*** cells, int dimension, float threshold);
+std::vector<Triangle> march(Cell*** cells, int dimension, float threshold);
+
+} // namespace mc

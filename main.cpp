@@ -156,6 +156,10 @@ int main(int argc, char** argv)
 
         auto prev = bx::getHPCounter();
 
+        const int dimension = 15;
+        auto points = mc::createPointVolume(dimension);
+        auto cells = mc::createCellVolume(dimension);
+
         for (bool quit = false; !quit;) {
             SDL_Event currentEvent;
             while (SDL_PollEvent(&currentEvent) != 0) {
@@ -204,16 +208,12 @@ int main(int argc, char** argv)
 
                 //
 
-                const int dimension = 15;
-                auto points = create_point_volume(dimension);
-                auto cells = create_cell_volume(dimension);
-
-                generate_point_data(
+                generatePointData(
                     points, dimension, /*offset*/ as::vec3_t::zero(),
                     /*scale*/ 14.0f);
-                generate_cell_data(cells, points, dimension);
+                generateCellData(cells, points, dimension);
 
-                auto triangles = march(cells, dimension, 4.0f /*threshold*/);
+                auto triangles = mc::march(cells, dimension, 4.0f /*threshold*/);
 
                 uint32_t maxVertices = 32 << 10;
                 bgfx::TransientVertexBuffer tvb;
@@ -255,9 +255,6 @@ int main(int argc, char** argv)
                 bgfx::setVertexBuffer(0, &tvb, 0, vertCount);
 
                 bgfx::submit(0, program);
-
-                destroy_cell_volume(cells, dimension);
-                destroy_point_volume(points, dimension);
             }
 
             // gizmo cube
@@ -294,6 +291,9 @@ int main(int argc, char** argv)
 
             bgfx::frame();
         }
+
+        mc::destroyCellVolume(cells, dimension);
+        mc::destroyPointVolume(points, dimension);
 
         bgfx::destroy(vbh);
         bgfx::destroy(ibh);
