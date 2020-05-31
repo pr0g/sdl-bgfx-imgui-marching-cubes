@@ -44,6 +44,42 @@ static bgfx::ShaderHandle createShader(
     return handle;
 }
 
+struct Fps
+{
+    enum
+    {
+        MaxSamples = 10
+    };
+
+    int64_t samples[MaxSamples] = {};
+    int head = 0;
+    int tail = MaxSamples - 1;
+    bool initialized = false;
+};
+
+namespace fps
+{
+
+int64_t calculateWindow(Fps& fps, const int64_t now)
+{
+    if (!fps.initialized && fps.head == fps.tail) {
+        fps.initialized = true;
+    }
+
+    fps.samples[fps.head] = now;
+    fps.head = (fps.head + 1) % fps.MaxSamples;
+
+    int64_t result = -1;
+    if (fps.initialized) {
+        result = fps.samples[fps.tail] - fps.samples[fps.head];
+        fps.tail = (fps.tail + 1) % fps.MaxSamples;
+    }
+
+    return result;
+}
+
+} // namespace fps
+
 int main(int argc, char** argv)
 {
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
@@ -150,23 +186,29 @@ int main(int argc, char** argv)
 
         // camera properties
         asc::CameraProperties camera_props{};
-        camera_props.rotate_speed = 0.01f;
-        camera_props.translate_speed = 1.0f;
+        camera_props.rotate_speed = 0.005f;
+        camera_props.translate_speed = 10.0f;
         camera_props.look_smoothness = 5.0f;
 
         auto prev = bx::getHPCounter();
 
         const int dimension = 15;
         auto points = mc::createPointVolume(dimension);
-        auto cells = mc::createCellVolume(dimension);
+        auto cellValues = mc::createCellValues(dimension);
+        auto cellPositions = mc::createCellPositions(dimension);
 
+        generatePointData(
+            points, dimension, /*offset*/ as::vec3_t::zero(), /*scale*/ 14.0f);
+        generateCellData(cellPositions, cellValues, points, dimension);
+
+        Fps fps;
         for (bool quit = false; !quit;) {
-            SDL_Event currentEvent;
-            while (SDL_PollEvent(&currentEvent) != 0) {
+            SDL_Event current_event;
+            while (SDL_PollEvent(&current_event) != 0) {
                 updateCameraControlKeyboardSdl(
-                    currentEvent, camera_control, camera_props);
-                ImGui_ImplSDL2_ProcessEvent(&currentEvent);
-                if (currentEvent.type == SDL_QUIT) {
+                    current_event, camera_control, camera_props);
+                ImGui_ImplSDL2_ProcessEvent(&current_event);
+                if (current_event.type == SDL_QUIT) {
                     quit = true;
                     break;
                 }
@@ -176,17 +218,23 @@ int main(int argc, char** argv)
             ImGui_ImplSDL2_NewFrame(window);
 
             ImGui::NewFrame();
-            ImGui::ShowDemoWindow(); // your drawing here
-            ImGui::Render();
+
+            auto freq = double(bx::getHPFrequency());
+            int64_t time_window = fps::calculateWindow(fps, bx::getHPCounter());
+            double framerate = time_window > -1
+                                 ? (double)(fps.MaxSamples - 1)
+                                       / (double(time_window) / freq)
+                                 : 0.0;
 
             updateCameraControlMouseSdl(
                 camera_control, camera_props, mouse_state);
 
+            // frame dt
             auto now = bx::getHPCounter();
             auto delta = now - prev;
             prev = now;
 
-            float dt = delta / (float)bx::getHPFrequency();
+            float dt = delta / freq;
 
             asc::update_camera(
                 camera, camera_control, camera_props, dt,
@@ -206,19 +254,15 @@ int main(int argc, char** argv)
 
                 bgfx::setViewTransform(0, view, proj);
 
-                //
+                auto marching_cube_begin = bx::getHPCounter();
 
-                generatePointData(
-                    points, dimension, /*offset*/ as::vec3_t::zero(),
-                    /*scale*/ 14.0f);
-                generateCellData(cells, points, dimension);
+                auto triangles = mc::march(
+                    cellPositions, cellValues, dimension, 4.0f /*threshold*/);
 
-                auto triangles = mc::march(cells, dimension, 4.0f /*threshold*/);
-
-                uint32_t maxVertices = 32 << 10;
+                uint32_t max_vertices = 32 << 10;
                 bgfx::TransientVertexBuffer tvb;
                 bgfx::allocTransientVertexBuffer(
-                    &tvb, maxVertices, pos_col_vert_layout);
+                    &tvb, max_vertices, pos_col_vert_layout);
 
                 PosColorVertex* vertex = (PosColorVertex*)tvb.data;
 
@@ -255,6 +299,18 @@ int main(int argc, char** argv)
                 bgfx::setVertexBuffer(0, &tvb, 0, vertCount);
 
                 bgfx::submit(0, program);
+
+                const double toMs = 1000.0 / freq;
+                auto marching_cube_time =
+                    double(bx::getHPCounter() - marching_cube_begin);
+
+                ImGui::Text("Framerate: ");
+                ImGui::SameLine(100);
+                ImGui::Text("%f", framerate);
+
+                ImGui::Text("Marching Cube update: ");
+                ImGui::SameLine(160);
+                ImGui::Text("%f", marching_cube_time * toMs);
             }
 
             // gizmo cube
@@ -289,10 +345,13 @@ int main(int argc, char** argv)
                 bgfx::submit(1, program);
             }
 
+            ImGui::Render();
+
             bgfx::frame();
         }
 
-        mc::destroyCellVolume(cells, dimension);
+        mc::destroyCellValues(cellValues, dimension);
+        mc::destroyCellPositions(cellPositions, dimension);
         mc::destroyPointVolume(points, dimension);
 
         bgfx::destroy(vbh);

@@ -35,14 +35,28 @@ Point*** createPointVolume(const int dimension)
     return points;
 }
 
-Cell*** createCellVolume(const int dimension)
+CellValues*** createCellValues(const int dimension)
 {
     const int cell_dim = dimension - 1;
-    Cell*** cells = new Cell**[cell_dim];
+    CellValues*** cells = new CellValues**[cell_dim];
     for (int z = 0; z < cell_dim; ++z) {
-        cells[z] = new Cell*[cell_dim];
+        cells[z] = new CellValues*[cell_dim];
         for (int y = 0; y < cell_dim; ++y) {
-            cells[z][y] = new Cell[cell_dim];
+            cells[z][y] = new CellValues[cell_dim];
+        }
+    }
+
+    return cells;
+}
+
+CellPositions*** createCellPositions(const int dimension)
+{
+    const int cell_dim = dimension - 1;
+    CellPositions*** cells = new CellPositions**[cell_dim];
+    for (int z = 0; z < cell_dim; ++z) {
+        cells[z] = new CellPositions*[cell_dim];
+        for (int y = 0; y < cell_dim; ++y) {
+            cells[z][y] = new CellPositions[cell_dim];
         }
     }
 
@@ -87,21 +101,32 @@ void generatePointData(
     }
 }
 
-void generateCellData(Cell*** cells, Point*** points, const int dimension)
+void generateCellData(
+    CellPositions*** cellPositions, CellValues*** cellValues, Point*** points,
+    const int dimension)
 {
     const int cell_dim = dimension - 1;
     for (int z = 0; z < cell_dim; ++z) {
         for (int y = 0; y < cell_dim; ++y) {
             for (int x = 0; x < cell_dim; ++x) {
                 // clang-format off
-                cells[z][y][x].points_[0] = points[z + 1][y    ][x    ]; // fbl
-                cells[z][y][x].points_[1] = points[z + 1][y    ][x + 1]; // fbr
-                cells[z][y][x].points_[2] = points[z    ][y    ][x + 1]; // nbr
-                cells[z][y][x].points_[3] = points[z    ][y    ][x    ]; // nbl
-                cells[z][y][x].points_[4] = points[z + 1][y + 1][x    ]; // ftl
-                cells[z][y][x].points_[5] = points[z + 1][y + 1][x + 1]; // ftr
-                cells[z][y][x].points_[6] = points[z    ][y + 1][x + 1]; // ntr
-                cells[z][y][x].points_[7] = points[z    ][y + 1][x    ]; // ntl
+                cellPositions[z][y][x].points_[0] = points[z + 1][y    ][x    ].position_; // fbl
+                cellPositions[z][y][x].points_[1] = points[z + 1][y    ][x + 1].position_; // fbr
+                cellPositions[z][y][x].points_[2] = points[z    ][y    ][x + 1].position_; // nbr
+                cellPositions[z][y][x].points_[3] = points[z    ][y    ][x    ].position_; // nbl
+                cellPositions[z][y][x].points_[4] = points[z + 1][y + 1][x    ].position_; // ftl
+                cellPositions[z][y][x].points_[5] = points[z + 1][y + 1][x + 1].position_; // ftr
+                cellPositions[z][y][x].points_[6] = points[z    ][y + 1][x + 1].position_; // ntr
+                cellPositions[z][y][x].points_[7] = points[z    ][y + 1][x    ].position_; // ntl
+
+                cellValues[z][y][x].values_[0] = points[z + 1][y    ][x    ].val_; // fbl
+                cellValues[z][y][x].values_[1] = points[z + 1][y    ][x + 1].val_; // fbr
+                cellValues[z][y][x].values_[2] = points[z    ][y    ][x + 1].val_; // nbr
+                cellValues[z][y][x].values_[3] = points[z    ][y    ][x    ].val_; // nbl
+                cellValues[z][y][x].values_[4] = points[z + 1][y + 1][x    ].val_; // ftl
+                cellValues[z][y][x].values_[5] = points[z + 1][y + 1][x + 1].val_; // ftr
+                cellValues[z][y][x].values_[6] = points[z    ][y + 1][x + 1].val_; // ntr
+                cellValues[z][y][x].values_[7] = points[z    ][y + 1][x    ].val_; // ntl
                 // clang-format on
             }
         }
@@ -119,7 +144,19 @@ void destroyPointVolume(Point*** points, const int dimension)
     delete[] points;
 }
 
-void destroyCellVolume(Cell*** cells, const int dimension)
+void destroyCellValues(CellValues*** cells, const int dimension)
+{
+    const int cell_dim = dimension - 1;
+    for (int z = 0; z < cell_dim; ++z) {
+        for (int y = 0; y < cell_dim; ++y) {
+            delete[] cells[z][y];
+        }
+        delete[] cells[z];
+    }
+    delete[] cells;
+}
+
+void destroyCellPositions(CellPositions*** cells, const int dimension)
 {
     const int cell_dim = dimension - 1;
     for (int z = 0; z < cell_dim; ++z) {
@@ -132,19 +169,21 @@ void destroyCellVolume(Cell*** cells, const int dimension)
 }
 
 std::vector<Triangle> march(
-    Cell*** cells, const int dimension, const float threshold)
+    CellPositions*** cellPositions, CellValues*** cellValues,
+    const int dimension, const float threshold)
 {
     const int cell_dim = dimension - 1;
     std::vector<Triangle> triangles;
+    triangles.reserve(256);
 
     for (int z = 0; z < cell_dim; ++z) {
         for (int y = 0; y < cell_dim; ++y) {
             for (int x = 0; x < cell_dim; ++x) {
-                const Cell& cell = cells[z][y][x];
+                const CellValues& cell = cellValues[z][y][x];
 
                 uint8_t cube_index = 0;
                 for (as::index_t i = 0; i < 8; i++) {
-                    if (cell.points_[i].val_ < threshold) {
+                    if (cell.values_[i] < threshold) {
                         cube_index |= 1 << i;
                     }
                 }
@@ -153,9 +192,11 @@ std::vector<Triangle> march(
                     continue;
                 }
 
-                const int point_table[][2] = {{0, 1}, {1, 2}, {2, 3}, {3, 0},
-                                              {4, 5}, {5, 6}, {6, 7}, {7, 4},
-                                              {0, 4}, {1, 5}, {2, 6}, {3, 7}};
+                static const int point_table[][2] = {
+                    {0, 1}, {1, 2}, {2, 3}, {3, 0}, {4, 5}, {5, 6},
+                    {6, 7}, {7, 4}, {0, 4}, {1, 5}, {2, 6}, {3, 7}};
+
+                const CellPositions& cellPosition = cellPositions[z][y][x];
 
                 as::vec3_t vertList[12];
                 const int edges = g_edge_table[cube_index];
@@ -164,9 +205,9 @@ std::vector<Triangle> march(
                         int p1 = point_table[i][0];
                         int p2 = point_table[i][1];
                         vertList[i] = interpolate(
-                            threshold, cell.points_[p1].position_,
-                            cell.points_[p2].position_, cell.points_[p1].val_,
-                            cell.points_[p2].val_);
+                            threshold, cellPosition.points_[p1],
+                            cellPosition.points_[p2], cell.values_[p1],
+                            cell.values_[p2]);
                     }
                 }
 
@@ -175,8 +216,8 @@ std::vector<Triangle> march(
                     const int v2 = g_tri_table[cube_index][i + 1];
                     const int v3 = g_tri_table[cube_index][i + 2];
 
-                    triangles.push_back(
-                        {vertList[v1], vertList[v2], vertList[v3]});
+                    triangles.emplace_back(
+                        vertList[v1], vertList[v2], vertList[v3]);
                 }
             }
         }
@@ -468,5 +509,4 @@ int g_tri_table[256][16] = {
     {0, 9, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
     {0, 3, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
     {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1}};
-
 } // namespace mc

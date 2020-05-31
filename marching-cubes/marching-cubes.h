@@ -13,26 +13,44 @@ struct Point
     as::vec3_t position_;
 };
 
-struct Cell
+struct CellValues
 {
-    Point points_[8];
+    float values_[8];
+};
+
+struct CellPositions
+{
+    as::vec3_t points_[8];
 };
 
 struct Triangle
 {
+    Triangle() = default;
+    Triangle(const as::vec3_t& a, const as::vec3_t& b, const as::vec3_t& c)
+        : verts_{a, b, c}
+    {
+    }
+
     as::vec3_t verts_[3];
 };
 
 Point*** createPointVolume(int dimension);
-Cell*** createCellVolume(int dimension);
+CellValues*** createCellValues(int dimension);
+CellPositions*** createCellPositions(int dimension);
 
 void generatePointData(
     Point*** points, int dimension, const as::vec3_t& offset, float scale);
-void generateCellData(Cell*** cells, Point*** points, int dimension);
+void generateCellData(
+    CellPositions*** cellPositions, CellValues*** cellValues, Point*** points,
+    int dimension);
 
 void destroyPointVolume(Point*** points, int dimension);
-void destroyCellVolume(Cell*** cells, int dimension);
 
-std::vector<Triangle> march(Cell*** cells, int dimension, float threshold);
+void destroyCellValues(CellValues*** cells, int dimension);
+void destroyCellPositions(CellPositions*** cells, int dimension);
+
+std::vector<Triangle> march(
+    CellPositions*** cellPositions, CellValues*** cellValues, int dimension,
+    float threshold);
 
 } // namespace mc
