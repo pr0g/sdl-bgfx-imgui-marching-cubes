@@ -172,9 +172,8 @@ int main(int argc, char** argv)
 
         asc::Camera camera{};
         // initial camera position and orientation
-        camera.look_at = as::vec3_t{22.84f, 16.43f, 37.43f};
-        camera.pitch = 0.3f;
-        camera.yaw = 3.6f;
+        auto cam_start = as::vec3_t{0.0f};
+        camera.look_at = cam_start;
 
         // initial mouse state
         MouseState mouse_state = mouseState();
@@ -192,14 +191,10 @@ int main(int argc, char** argv)
 
         auto prev = bx::getHPCounter();
 
-        const int dimension = 15;
+        const int dimension = 30;
         auto points = mc::createPointVolume(dimension);
         auto cellValues = mc::createCellValues(dimension);
         auto cellPositions = mc::createCellPositions(dimension);
-
-        generatePointData(
-            points, dimension, /*offset*/ as::vec3_t::zero(), /*scale*/ 14.0f);
-        generateCellData(cellPositions, cellValues, points, dimension);
 
         Fps fps;
         for (bool quit = false; !quit;) {
@@ -249,15 +244,32 @@ int main(int argc, char** argv)
                 as::mat::to_arr(
                     as::view::perspective_d3d_lh(
                         as::deg_to_rad(35.0f), float(width) / float(height),
-                        0.1f, 100.0f),
+                        0.01f, 100.0f),
                     proj);
 
                 bgfx::setViewTransform(0, view, proj);
 
                 auto marching_cube_begin = bx::getHPCounter();
 
-                auto triangles = mc::march(
-                    cellPositions, cellValues, dimension, 4.0f /*threshold*/);
+                static float offset_array[3] = {};
+                const as::vec3_t offset = as::vec::from_arr(offset_array);
+                as::mat3_t cam_orientation =
+                    as::mat3::from_mat4(camera.transform());
+
+                static float camera_adjust = 30.0f;
+                static float scale = 14.0f;
+                generatePointData(
+                    points, dimension,
+                    camera.look_at
+                        + cam_orientation * as::vec3_t::axis_z(camera_adjust),
+                    scale,
+                    camera.look_at
+                        + cam_orientation * as::vec3_t::axis_z(camera_adjust));
+                generateCellData(cellPositions, cellValues, points, dimension);
+
+                static float threshold = 4.0f;
+                auto triangles =
+                    mc::march(cellPositions, cellValues, dimension, threshold);
 
                 uint32_t max_vertices = 32 << 10;
                 bgfx::TransientVertexBuffer tvb;
@@ -289,14 +301,13 @@ int main(int argc, char** argv)
                     }
                 }
 
-                as::mat4_t rot = as::mat4_t::identity();
-
                 float model[16];
-                as::mat::to_arr(rot, model);
-
+                as::mat::to_arr(as::mat4_t::identity(), model);
                 bgfx::setTransform(model);
 
                 bgfx::setVertexBuffer(0, &tvb, 0, vertCount);
+
+                bgfx::setState(BGFX_STATE_DEFAULT);
 
                 bgfx::submit(0, program);
 
@@ -311,6 +322,11 @@ int main(int argc, char** argv)
                 ImGui::Text("Marching Cube update: ");
                 ImGui::SameLine(160);
                 ImGui::Text("%f", marching_cube_time * toMs);
+
+                ImGui::SliderFloat("Threshold", &threshold, 0.0f, 10.0f);
+                ImGui::SliderFloat("Back", &camera_adjust, 0.0f, 100.0f);
+                ImGui::SliderFloat("Scale", &scale, 0.0f, 100.0f);
+                ImGui::SliderFloat3("Offset", offset_array, -100.0f, 100.0f);
             }
 
             // gizmo cube

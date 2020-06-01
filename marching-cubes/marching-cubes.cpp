@@ -67,35 +67,29 @@ static const float g_threshold_scale = 10.0f;
 
 void generatePointData(
     Point*** points, const int dimension, const as::vec3_t& offset,
-    const float scale)
+    const float scale, const as::vec3_t& cam)
 {
-    as::vec3_t center{7.5f, 7.5f, 7.5f};
-    as::real_t radius{5.0f};
-
-    const int granularity = 1;
-    // const int dim = 15 * granularity;
-    const as::real_t step = 1.0f / (as::real_t)granularity;
-
     for (int z = 0; z < dimension; ++z) {
         for (int y = 0; y < dimension; ++y) {
             for (int x = 0; x < dimension; ++x) {
-                as::vec3_t p = as::vec3_t(x, y, z) * step;
-                as::vec3_t d{p - center};
-                // sphere
-                as::real_t distance = as::vec::length(d);
 
                 as::vec3_t pos{
                     as::vec3_t{as::real_t(x), as::real_t(y), as::real_t(z)}};
 
                 points[z][y][x].val_ =
                     ((glm::perlin(glm_vec3(
-                          (as::vec3_t{as::vec3::xy(pos), -pos.z} + offset)
+                          (as::vec3_t{as::vec3::xy(pos), pos.z} + offset)
                           / scale))
                       + 1.0f)
                      * 0.5f)
                     * g_threshold_scale;
-                // points[z][y][x].val_ = distance / radius; // sphere
-                points[z][y][x].position_ = pos * step;
+
+                points[z][y][x].position_ =
+                    as::vec3_t{
+                        as::real_t(x) - (dimension * 0.5f),
+                        as::real_t(y) - (dimension * 0.5f),
+                        as::real_t(z) - (dimension * 0.5f)}
+                    + cam;
             }
         }
     }

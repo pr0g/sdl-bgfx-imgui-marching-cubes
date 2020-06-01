@@ -40,11 +40,6 @@ void updateCameraControlKeyboardSdl(
                 control.motion ^= motionFromKey(key);
             }
         } break;
-        case SDL_MOUSEWHEEL:
-            control.dolly = as::min(
-                control.dolly + float(event.wheel.y) * props.translate_speed,
-                0.0f);
-            break;
         default:
             break;
     }
@@ -58,14 +53,14 @@ MouseState mouseState()
     const int buttons =
         SDL_GetGlobalMouseState(&mouse_state.xy[0], &mouse_state.xy[1]);
     mouse_state.buttons |= ((buttons & SDL_BUTTON(SDL_BUTTON_LEFT)) != 0)
-                               ? MouseButtons::Lmb
-                               : MouseButtons::None;
+                             ? MouseButtons::Lmb
+                             : MouseButtons::None;
     mouse_state.buttons |= ((buttons & SDL_BUTTON(SDL_BUTTON_RIGHT)) != 0)
-                               ? MouseButtons::Rmb
-                               : MouseButtons::None;
+                             ? MouseButtons::Rmb
+                             : MouseButtons::None;
     mouse_state.buttons |= ((buttons & SDL_BUTTON(SDL_BUTTON_MIDDLE)) != 0)
-                               ? MouseButtons::Mmb
-                               : MouseButtons::None;
+                             ? MouseButtons::Mmb
+                             : MouseButtons::None;
     return mouse_state;
 }
 
@@ -76,7 +71,7 @@ void updateCameraControlMouseSdl(
     const MouseState mouse_state = mouseState();
 
     using bec::operator&;
-    if ((mouse_state.buttons & MouseButtons::Lmb) == MouseButtons::Lmb) {
+    if ((mouse_state.buttons & MouseButtons::Rmb) == MouseButtons::Rmb) {
         const as::vec2i_t delta = mouse_state.xy - prev_mouse_state.xy;
         control.pitch += float(delta[1]) * props.rotate_speed;
         control.yaw += float(delta[0]) * props.rotate_speed;
