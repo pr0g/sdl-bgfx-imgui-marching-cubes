@@ -78,7 +78,7 @@ void generatePointData(
 
                 points[z][y][x].val_ =
                     ((glm::perlin(glm_vec3(
-                          (as::vec3_t{as::vec3::xy(pos), pos.z} + offset)
+                          (as::vec3_t{as::vec2::from_vec3(pos), pos.z} + offset)
                           / scale))
                       + 1.0f)
                      * 0.5f)
