@@ -57,7 +57,7 @@ struct Fps
 {
     enum
     {
-        MaxSamples = 10
+        MaxSamples = 20
     };
 
     int64_t samples[MaxSamples] = {};
