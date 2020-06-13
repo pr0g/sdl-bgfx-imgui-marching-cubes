@@ -15,6 +15,8 @@
 #include "marching-cubes/marching-cubes.h"
 #include "sdl-imgui/imgui_impl_sdl.h"
 
+#include <optional>
+
 struct PosColorVertex
 {
     float x;
@@ -86,6 +88,25 @@ int64_t calculateWindow(Fps& fps, const int64_t now)
 }
 
 } // namespace fps
+
+std::optional<bgfx::ProgramHandle> createShaderProgram(
+    const char* vert_shader_path, const char* frag_shader_path)
+{
+    std::string vshader;
+    if (!fileops::read_file(vert_shader_path, vshader)) {
+        return {};
+    }
+
+    std::string fshader;
+    if (!fileops::read_file(frag_shader_path, fshader)) {
+        return {};
+    }
+
+    bgfx::ShaderHandle vsh = createShader(vshader, "vshader");
+    bgfx::ShaderHandle fsh = createShader(fshader, "fshader");
+
+    return bgfx::createProgram(vsh, fsh, true);
+}
 
 int main(int argc, char** argv)
 {
@@ -169,20 +190,15 @@ int main(int argc, char** argv)
         bgfx::IndexBufferHandle ibh = bgfx::createIndexBuffer(
             bgfx::makeRef(cube_tri_list, sizeof(cube_tri_list)));
 
-        std::string vshader;
-        if (!fileops::read_file("shader/next/v_next.bin", vshader)) {
-            return 1;
-        }
+        const bgfx::ProgramHandle program_norm =
+            createShaderProgram(
+                "shader/next/v_next.bin", "shader/next/f_next.bin")
+                .value_or(bgfx::ProgramHandle(BGFX_INVALID_HANDLE));
 
-        std::string fshader;
-        if (!fileops::read_file("shader/next/f_next.bin", fshader)) {
-            return 1;
-        }
-
-        bgfx::ShaderHandle vsh = createShader(vshader, "vshader");
-        bgfx::ShaderHandle fsh = createShader(fshader, "fshader");
-
-        bgfx::ProgramHandle program = bgfx::createProgram(vsh, fsh, true);
+        const bgfx::ProgramHandle program_col =
+            createShaderProgram(
+                "shader/simple/v_simple.bin", "shader/simple/f_simple.bin")
+                .value_or(bgfx::ProgramHandle(BGFX_INVALID_HANDLE));
 
         asc::Camera camera{};
         // initial camera position and orientation
@@ -270,7 +286,7 @@ int main(int argc, char** argv)
                 as::mat3_t cam_orientation =
                     as::mat3::from_mat4(camera.transform());
 
-                static float camera_adjust = 30.0f;
+                static float camera_adjust = 20.0f;
                 static float scale = 14.0f;
                 generatePointData(
                     points, dimension, scale,
@@ -311,7 +327,7 @@ int main(int argc, char** argv)
 
                 bgfx::setState(BGFX_STATE_DEFAULT);
 
-                bgfx::submit(0, program);
+                bgfx::submit(0, program_norm);
 
                 const double toMs = 1000.0 / freq;
                 auto marching_cube_time =
@@ -360,7 +376,7 @@ int main(int argc, char** argv)
                 bgfx::setVertexBuffer(0, vbh);
                 bgfx::setIndexBuffer(ibh);
 
-                bgfx::submit(1, program);
+                bgfx::submit(1, program_col);
             }
 
             ImGui::Render();
@@ -374,7 +390,8 @@ int main(int argc, char** argv)
 
         bgfx::destroy(vbh);
         bgfx::destroy(ibh);
-        bgfx::destroy(program);
+        bgfx::destroy(program_norm);
+        bgfx::destroy(program_col);
 
         ImGui_ImplSDL2_Shutdown();
         ImGui_Implbgfx_Shutdown();

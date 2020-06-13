@@ -32,8 +32,8 @@ target_link_libraries(
 target_compile_definitions(
     ${PROJECT_NAME} PRIVATE -DAS_PRECISION_FLOAT -DAS_COL_MAJOR)
 
-set_target_properties(
-    ${PROJECT_NAME} PROPERTIES CXX_STANDARD 11)
+target_compile_features(
+    ${PROJECT_NAME} PRIVATE cxx_std_17)
 
 # required for project when using visual studio generator
 set_target_properties(
