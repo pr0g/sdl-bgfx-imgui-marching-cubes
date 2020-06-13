@@ -281,17 +281,18 @@ int main(int argc, char** argv)
 
                 auto marching_cube_begin = bx::getHPCounter();
 
-                static float offset_array[3] = {};
-                const as::vec3_t offset = as::vec::from_arr(offset_array);
-                as::mat3_t cam_orientation =
+                /* static */ as::mat3_t cam_orientation =
                     as::mat3::from_mat4(camera.transform());
 
-                static float camera_adjust = 20.0f;
+                static float camera_adjust = (float(dimension) * 0.5f) + 1.0f;
+
+                /* static */ const as::vec3_t lookat = camera.look_at;
+                const as::vec3_t offset =
+                    lookat
+                    + cam_orientation * as::vec3_t::axis_z(camera_adjust);
+
                 static float scale = 14.0f;
-                generatePointData(
-                    points, dimension, scale,
-                    camera.look_at
-                        + cam_orientation * as::vec3_t::axis_z(camera_adjust));
+                generatePointData(points, dimension, scale, offset);
                 generateCellData(cellPositions, cellValues, points, dimension);
 
                 static float threshold = 4.0f;
@@ -324,10 +325,17 @@ int main(int argc, char** argv)
                 bgfx::setTransform(model);
 
                 bgfx::setVertexBuffer(0, &tvb, 0, vertCount);
-
                 bgfx::setState(BGFX_STATE_DEFAULT);
-
                 bgfx::submit(0, program_norm);
+
+                float cmodel[16];
+                as::mat::to_arr(
+                    as::mat4::from_mat3_vec3(cam_orientation, lookat), cmodel);
+                bgfx::setTransform(cmodel);
+
+                bgfx::setVertexBuffer(0, vbh);
+                bgfx::setIndexBuffer(ibh);
+                bgfx::submit(0, program_col);
 
                 const double toMs = 1000.0 / freq;
                 auto marching_cube_time =
@@ -344,7 +352,6 @@ int main(int argc, char** argv)
                 ImGui::SliderFloat("Threshold", &threshold, 0.0f, 10.0f);
                 ImGui::SliderFloat("Back", &camera_adjust, 0.0f, 100.0f);
                 ImGui::SliderFloat("Scale", &scale, 0.0f, 100.0f);
-                ImGui::SliderFloat3("Offset", offset_array, -100.0f, 100.0f);
             }
 
             // gizmo cube
