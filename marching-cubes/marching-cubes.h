@@ -39,8 +39,7 @@ CellValues*** createCellValues(int dimension);
 CellPositions*** createCellPositions(int dimension);
 
 void generatePointData(
-    Point*** points, int dimension, const as::vec3_t& offset, float scale,
-    const as::vec3_t& cam);
+    Point*** points, int dimension, float scale, const as::vec3_t& cam);
 void generateCellData(
     CellPositions*** cellPositions, CellValues*** cellValues, Point*** points,
     int dimension);

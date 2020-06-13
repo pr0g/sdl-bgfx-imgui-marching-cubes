@@ -23,6 +23,13 @@ struct PosColorVertex
     uint32_t abgr;
 };
 
+struct PosNormalUv
+{
+    as::vec3_t position;
+    as::vec3_t normal;
+    // as::vec2_t uv;
+};
+
 static PosColorVertex cube_vertices[] = {
     {-1.0f, 1.0f, 1.0f, 0xff000000},   {1.0f, 1.0f, 1.0f, 0xff0000ff},
     {-1.0f, -1.0f, 1.0f, 0xff00ff00},  {1.0f, -1.0f, 1.0f, 0xff00ffff},
@@ -149,6 +156,13 @@ int main(int argc, char** argv)
             .add(bgfx::Attrib::Color0, 4, bgfx::AttribType::Uint8, true)
             .end();
 
+        bgfx::VertexLayout pos_norm_uv_layout;
+        pos_norm_uv_layout.begin()
+            .add(bgfx::Attrib::Position, 3, bgfx::AttribType::Float)
+            .add(bgfx::Attrib::Normal, 3, bgfx::AttribType::Float, true)
+            // .add(bgfx::Attrib::TexCoord0, 2, bgfx::AttribType::Float)
+            .end();
+
         bgfx::VertexBufferHandle vbh = bgfx::createVertexBuffer(
             bgfx::makeRef(cube_vertices, sizeof(cube_vertices)),
             pos_col_vert_layout);
@@ -156,12 +170,12 @@ int main(int argc, char** argv)
             bgfx::makeRef(cube_tri_list, sizeof(cube_tri_list)));
 
         std::string vshader;
-        if (!fileops::read_file("shader/v_simple.bin", vshader)) {
+        if (!fileops::read_file("shader/next/v_next.bin", vshader)) {
             return 1;
         }
 
         std::string fshader;
-        if (!fileops::read_file("shader/f_simple.bin", fshader)) {
+        if (!fileops::read_file("shader/next/f_next.bin", fshader)) {
             return 1;
         }
 
@@ -259,10 +273,7 @@ int main(int argc, char** argv)
                 static float camera_adjust = 30.0f;
                 static float scale = 14.0f;
                 generatePointData(
-                    points, dimension,
-                    camera.look_at
-                        + cam_orientation * as::vec3_t::axis_z(camera_adjust),
-                    scale,
+                    points, dimension, scale,
                     camera.look_at
                         + cam_orientation * as::vec3_t::axis_z(camera_adjust));
                 generateCellData(cellPositions, cellValues, points, dimension);
@@ -274,30 +285,21 @@ int main(int argc, char** argv)
                 uint32_t max_vertices = 32 << 10;
                 bgfx::TransientVertexBuffer tvb;
                 bgfx::allocTransientVertexBuffer(
-                    &tvb, max_vertices, pos_col_vert_layout);
+                    &tvb, max_vertices, pos_norm_uv_layout);
 
-                PosColorVertex* vertex = (PosColorVertex*)tvb.data;
-
-                const float increment = 360.0f / (triangles.size() * 3);
-                float h = 0.0f;
+                PosNormalUv* vertex = (PosNormalUv*)tvb.data;
 
                 int vertCount = 0;
                 for (const auto& tri : triangles) {
+                    const as::vec3_t e1 = tri.verts_[1] - tri.verts_[0];
+                    const as::vec3_t e2 = tri.verts_[2] - tri.verts_[0];
+                    const as::vec3_t normal = as::vec::abs(
+                        as::vec::normalize(as::vec3::cross(e1, e2)));
                     for (const auto& vert : tri.verts_) {
-                        vertex->x = vert.x;
-                        vertex->y = vert.y;
-                        vertex->z = vert.z;
-
-                        float r, g, b;
-                        HSVtoRGB(r, g, b, h, 1.0f, 1.0f);
-                        uint8_t ri = r * 255;
-                        uint8_t gi = g * 255;
-                        uint8_t bi = b * 255;
-
-                        vertex->abgr = ri | gi << 8 | bi << 16 | 0xff << 24;
+                        vertex->position = vert;
+                        vertex->normal = normal;
                         vertex++;
                         vertCount++;
-                        h += increment;
                     }
                 }
 

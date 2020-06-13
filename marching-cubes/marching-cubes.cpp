@@ -66,21 +66,22 @@ CellPositions*** createCellPositions(const int dimension)
 static const float g_threshold_scale = 10.0f;
 
 void generatePointData(
-    Point*** points, const int dimension, const as::vec3_t& offset,
-    const float scale, const as::vec3_t& cam)
+    Point*** points, const int dimension, const float scale,
+    const as::vec3_t& cam)
 {
     for (int z = 0; z < dimension; ++z) {
         for (int y = 0; y < dimension; ++y) {
             for (int x = 0; x < dimension; ++x) {
 
+                as::vec3_t round_cam{as::vec3_t{
+                    as::real_t(floorf(cam.x)), as::real_t(floorf(cam.y)),
+                    as::real_t(floorf(cam.z))}};
+
                 as::vec3_t pos{
                     as::vec3_t{as::real_t(x), as::real_t(y), as::real_t(z)}};
 
                 points[z][y][x].val_ =
-                    ((glm::perlin(glm_vec3(
-                          (as::vec3_t{as::vec2::from_vec3(pos), pos.z} + offset)
-                          / scale))
-                      + 1.0f)
+                    ((glm::perlin(glm_vec3((pos + round_cam) / scale)) + 1.0f)
                      * 0.5f)
                     * g_threshold_scale;
 
@@ -89,7 +90,7 @@ void generatePointData(
                         as::real_t(x) - (dimension * 0.5f),
                         as::real_t(y) - (dimension * 0.5f),
                         as::real_t(z) - (dimension * 0.5f)}
-                    + cam;
+                    + round_cam;
             }
         }
     }
