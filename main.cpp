@@ -15,7 +15,11 @@
 #include "marching-cubes/marching-cubes.h"
 #include "sdl-imgui/imgui_impl_sdl.h"
 
+#include <algorithm>
 #include <optional>
+#include <tuple>
+#include <unordered_map>
+#include <vector>
 
 struct PosColorVertex
 {
@@ -107,6 +111,39 @@ std::optional<bgfx::ProgramHandle> createShaderProgram(
 
     return bgfx::createProgram(vsh, fsh, true);
 }
+
+template<class T>
+inline void hashCombine(std::size_t& seed, const T& v)
+{
+    std::hash<T> hasher;
+    seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+}
+
+namespace std
+{
+
+template<>
+struct hash<as::vec3_t>
+{
+    std::size_t operator()(const as::vec3_t& vec) const
+    {
+        size_t seed = 0;
+        hashCombine(seed, vec.x);
+        hashCombine(seed, vec.y);
+        hashCombine(seed, vec.z);
+        return seed;
+    }
+};
+
+} // namespace std
+
+struct Vec3EqualFn
+{
+    bool operator()(const as::vec3_t& lhs, const as::vec3_t& rhs) const
+    {
+        return as::vec::equal(lhs, rhs);
+    }
+};
 
 int main(int argc, char** argv)
 {
@@ -226,6 +263,11 @@ int main(int argc, char** argv)
         auto cellValues = mc::createCellValues(dimension);
         auto cellPositions = mc::createCellPositions(dimension);
 
+        std::vector<as::vec3_t> filtered_verts;
+        std::unordered_map<
+            as::vec3_t, as::index_t, std::hash<as::vec3_t>, Vec3EqualFn>
+            unique_verts;
+
         Fps fps;
         for (bool quit = false; !quit;) {
             SDL_Event current_event;
@@ -299,32 +341,70 @@ int main(int argc, char** argv)
                 auto triangles =
                     mc::march(cellPositions, cellValues, dimension, threshold);
 
+                std::vector<as::index_t> indices;
+                indices.resize(triangles.size() * 3);
+
+                as::index_t index = 0;
+                as::index_t unique = 0;
+                for (const auto& tri : triangles) {
+                    for (const auto& vert : tri.verts_) {
+                        const auto exists = unique_verts.find(vert);
+                        if (exists == std::end(unique_verts)) {
+                            filtered_verts.push_back(vert);
+                            unique_verts.insert({vert, unique});
+                            indices[index] = unique;
+                            unique++;
+                        } else {
+                            indices[index] = exists->second;
+                        }
+                        index++;
+                    }
+                }
+
                 uint32_t max_vertices = 32 << 10;
                 bgfx::TransientVertexBuffer tvb;
                 bgfx::allocTransientVertexBuffer(
                     &tvb, max_vertices, pos_norm_uv_layout);
 
-                PosNormalUv* vertex = (PosNormalUv*)tvb.data;
+                bgfx::TransientIndexBuffer tib;
+                bgfx::allocTransientIndexBuffer(&tib, max_vertices);
 
-                int vertCount = 0;
-                for (const auto& tri : triangles) {
-                    const as::vec3_t e1 = tri.verts_[1] - tri.verts_[0];
-                    const as::vec3_t e2 = tri.verts_[2] - tri.verts_[0];
-                    const as::vec3_t normal = as::vec::abs(
-                        as::vec::normalize(as::vec3::cross(e1, e2)));
-                    for (const auto& vert : tri.verts_) {
-                        vertex->position = vert;
-                        vertex->normal = normal;
-                        vertex++;
-                        vertCount++;
-                    }
+                PosNormalUv* vertex = (PosNormalUv*)tvb.data;
+                int16_t* index_data = (int16_t*)tib.data;
+
+                for (as::index_t i = 0; i < filtered_verts.size(); i++) {
+                    vertex[i].normal = as::vec3_t::zero();
+                    vertex[i].position = filtered_verts[i];
+                }
+
+                for (as::index_t indice = 0; indice < indices.size();
+                     indice++) {
+                    index_data[indice] = indices[indice];
+                }
+
+                for (as::index_t indice = 0; indice < indices.size();
+                     indice += 3) {
+                    const as::vec3_t e1 = filtered_verts[indices[indice]]
+                                        - filtered_verts[indices[indice + 1]];
+                    const as::vec3_t e2 = filtered_verts[indices[indice + 2]]
+                                        - filtered_verts[indices[indice + 1]];
+                    const as::vec3_t normal =
+                        as::vec::abs(as::vec3::cross(e1, e2));
+                    vertex[indices[indice]].normal += normal;
+                    vertex[indices[indice + 1]].normal += normal;
+                    vertex[indices[indice + 2]].normal += normal;
+                }
+
+                for (as::index_t i = 0; i < filtered_verts.size(); i++) {
+                    vertex[i].normal = as::vec::normalize(vertex[i].normal);
                 }
 
                 float model[16];
                 as::mat::to_arr(as::mat4_t::identity(), model);
                 bgfx::setTransform(model);
 
-                bgfx::setVertexBuffer(0, &tvb, 0, vertCount);
+                bgfx::setIndexBuffer(&tib, 0, indices.size());
+                bgfx::setVertexBuffer(0, &tvb, 0, filtered_verts.size());
                 bgfx::setState(BGFX_STATE_DEFAULT);
                 bgfx::submit(0, program_norm);
 
@@ -385,6 +465,9 @@ int main(int argc, char** argv)
 
                 bgfx::submit(1, program_col);
             }
+
+            filtered_verts.clear();
+            unique_verts.clear();
 
             ImGui::Render();
 
