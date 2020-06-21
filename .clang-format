@@ -28,5 +28,6 @@ SortIncludes: true
 IncludeBlocks: Preserve
 FixNamespaceComments: true
 AlignOperands: AlignAfterOperator
+AlignTrailingComments: false
 BreakBeforeBinaryOperators: NonAssignment
 ...
