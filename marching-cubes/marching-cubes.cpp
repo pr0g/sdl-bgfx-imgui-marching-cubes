@@ -73,9 +73,7 @@ void generatePointData(
         for (int y = 0; y < dimension; ++y) {
             for (int x = 0; x < dimension; ++x) {
 
-                as::vec3_t round_cam{as::vec3_t{
-                    as::real_t(floorf(cam.x)), as::real_t(floorf(cam.y)),
-                    as::real_t(floorf(cam.z))}};
+                as::vec3_t round_cam = as::vec::round(cam);
 
                 as::vec3_t pos{
                     as::vec3_t{as::real_t(x), as::real_t(y), as::real_t(z)}};
