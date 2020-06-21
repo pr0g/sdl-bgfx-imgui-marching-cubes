@@ -297,6 +297,8 @@ int main(int argc, char** argv)
 
         const bgfx::UniformHandle u_light_dir =
             bgfx::createUniform("u_lightDir", bgfx::UniformType::Vec4, 1);
+        const bgfx::UniformHandle u_camera_pos =
+            bgfx::createUniform("u_cameraPos", bgfx::UniformType::Vec4, 1);
 
         as::vec3_t light_dir{0.0f, 1.0f, -1.0f};
 
@@ -519,6 +521,7 @@ int main(int argc, char** argv)
                 bgfx::setState(BGFX_STATE_DEFAULT);
 
                 bgfx::setUniform(u_light_dir, (void*)&light_dir, 1);
+                bgfx::setUniform(u_camera_pos, (void*)&camera.look_at, 1);
 
                 bgfx::setTransform(cmodel);
 
@@ -616,6 +619,7 @@ int main(int argc, char** argv)
         mc::destroyCellPositions(cellPositions, dimension);
         mc::destroyPointVolume(points, dimension);
 
+        bgfx::destroy(u_camera_pos);
         bgfx::destroy(u_light_dir);
         bgfx::destroy(cube_col_vbh);
         bgfx::destroy(cube_col_ibh);
