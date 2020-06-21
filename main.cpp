@@ -23,10 +23,8 @@
 
 struct PosColorVertex
 {
-    float x;
-    float y;
-    float z;
-    uint32_t abgr;
+    as::vec3_t position;
+    as::u32 abgr;
 };
 
 struct PosNormalUv
@@ -36,17 +34,73 @@ struct PosNormalUv
     // as::vec2_t uv;
 };
 
-static PosColorVertex cube_vertices[] = {
-    {-1.0f, 1.0f, 1.0f, 0xff000000},   {1.0f, 1.0f, 1.0f, 0xff0000ff},
-    {-1.0f, -1.0f, 1.0f, 0xff00ff00},  {1.0f, -1.0f, 1.0f, 0xff00ffff},
-    {-1.0f, 1.0f, -1.0f, 0xffff0000},  {1.0f, 1.0f, -1.0f, 0xffff00ff},
-    {-1.0f, -1.0f, -1.0f, 0xffffff00}, {1.0f, -1.0f, -1.0f, 0xffffffff},
+static PosColorVertex cube_vertices_col[] = {
+    {as::vec3_t{-1.0f, 1.0f, 1.0f}, 0xff000000},
+    {as::vec3_t{1.0f, 1.0f, 1.0f}, 0xff0000ff},
+    {as::vec3_t{-1.0f, -1.0f, 1.0f}, 0xff00ff00},
+    {as::vec3_t{1.0f, -1.0f, 1.0f}, 0xff00ffff},
+    {as::vec3_t{-1.0f, 1.0f, -1.0f}, 0xffff0000},
+    {as::vec3_t{1.0f, 1.0f, -1.0f}, 0xffff00ff},
+    {as::vec3_t{-1.0f, -1.0f, -1.0f}, 0xffffff00},
+    {as::vec3_t{1.0f, -1.0f, -1.0f}, 0xffffffff},
 };
 
-static const uint16_t cube_tri_list[] = {
+static const uint16_t cube_tri_list_col[] = {
     0, 1, 2, 1, 3, 2, 4, 6, 5, 5, 6, 7, 0, 2, 4, 4, 2, 6,
     1, 5, 3, 5, 7, 3, 0, 4, 1, 4, 5, 1, 2, 3, 6, 6, 3, 7,
 };
+
+// clang-format off
+static PosNormalUv cube_vertices_norm[] = {
+    // far face
+    /*0*/{as::vec3_t{-1.0f, 1.0f, 1.0f}, as::vec3_t{0.0f, 0.0f, 1.0f}},// ftl
+    /*1*/{as::vec3_t{1.0f, 1.0f, 1.0f}, as::vec3_t{0.0f, 0.0f, 1.0f}},// ftr
+    /*2*/{as::vec3_t{-1.0f, -1.0f, 1.0f}, as::vec3_t{0.0f, 0.0f, 1.0f}},// fbl
+    /*1*/{as::vec3_t{1.0f, 1.0f, 1.0f}, as::vec3_t{0.0f, 0.0f, 1.0f}},// ftr
+    /*3*/{as::vec3_t{1.0f, -1.0f, 1.0f}, as::vec3_t{0.0f, 0.0f, 1.0f}},// fbr
+    /*2*/{as::vec3_t{-1.0f, -1.0f, 1.0f}, as::vec3_t{0.0f, 0.0f, 1.0f}},// fbl
+
+    // near face
+    /*4*/{as::vec3_t{-1.0f, 1.0f, -1.0f}, as::vec3_t{0.0f, 0.0f, -1.0f}},// ntl
+    /*6*/{as::vec3_t{-1.0f, -1.0f, -1.0f}, as::vec3_t{0.0f, 0.0f, -1.0f}},// nbl
+    /*5*/{as::vec3_t{1.0f, 1.0f, -1.0f}, as::vec3_t{0.0f, 0.0f, -1.0f}},// ntr
+    /*5*/{as::vec3_t{1.0f, 1.0f, -1.0f}, as::vec3_t{0.0f, 0.0f, -1.0f}},// ntr
+    /*6*/{as::vec3_t{-1.0f, -1.0f, -1.0f}, as::vec3_t{0.0f, 0.0f, -1.0f}},// nbl
+    /*7*/{as::vec3_t{1.0f, -1.0f, -1.0f}, as::vec3_t{0.0f, 0.0f, -1.0f}},// nbr
+
+    // left face
+    /*0*/{as::vec3_t{-1.0f, 1.0f, 1.0f}, as::vec3_t{-1.0f, 0.0f, 0.0f}},// ftl
+    /*2*/{as::vec3_t{-1.0f, -1.0f, 1.0f}, as::vec3_t{-1.0f, 0.0f, 0.0f}},// fbl
+    /*4*/{as::vec3_t{-1.0f, 1.0f, -1.0f}, as::vec3_t{-1.0f, 0.0f, 0.0f}},// ntl
+    /*4*/{as::vec3_t{-1.0f, 1.0f, -1.0f}, as::vec3_t{-1.0f, 0.0f, 0.0f}},// ntl
+    /*2*/{as::vec3_t{-1.0f, -1.0f, 1.0f}, as::vec3_t{-1.0f, 0.0f, 0.0f}},// fbl
+    /*6*/{as::vec3_t{-1.0f, -1.0f, -1.0f}, as::vec3_t{-1.0f, 0.0f, 0.0f}},// nbl
+
+    // right face
+    /*1*/{as::vec3_t{1.0f, 1.0f, 1.0f}, as::vec3_t{1.0f, 0.0f, 0.0f}},// ftr
+    /*5*/{as::vec3_t{1.0f, 1.0f, -1.0f}, as::vec3_t{1.0f, 0.0f, 0.0f}},// ntr
+    /*3*/{as::vec3_t{1.0f, -1.0f, 1.0f}, as::vec3_t{1.0f, 0.0f, 0.0f}},// fbr
+    /*5*/{as::vec3_t{1.0f, 1.0f, -1.0f}, as::vec3_t{1.0f, 0.0f, 0.0f}},// ntr
+    /*7*/{as::vec3_t{1.0f, -1.0f, -1.0f}, as::vec3_t{1.0f, 0.0f, 0.0f}},// nbr
+    /*3*/{as::vec3_t{1.0f, -1.0f, 1.0f}, as::vec3_t{1.0f, 0.0f, 0.0f}},// fbr
+
+    // top face
+    /*0*/{as::vec3_t{-1.0f, 1.0f, 1.0f}, as::vec3_t{0.0f, 1.0f, 0.0f}},// ftl
+    /*4*/{as::vec3_t{-1.0f, 1.0f, -1.0f}, as::vec3_t{0.0f, 1.0f, 0.0f}},// ntl
+    /*1*/{as::vec3_t{1.0f, 1.0f, 1.0f}, as::vec3_t{0.0f, 1.0f, 0.0f}},// ftr
+    /*4*/{as::vec3_t{-1.0f, 1.0f, -1.0f}, as::vec3_t{0.0f, 1.0f, 0.0f}},// ntl
+    /*5*/{as::vec3_t{1.0f, 1.0f, -1.0f}, as::vec3_t{0.0f, 1.0f, 0.0f}},// ntr
+    /*1*/{as::vec3_t{1.0f, 1.0f, 1.0f}, as::vec3_t{0.0f, 1.0f, 0.0f}},// ftr
+
+    // bottom face
+    /*2*/{as::vec3_t{-1.0f, -1.0f, 1.0f}, as::vec3_t{0.0f, -1.0f, 0.0f}},// fbl
+    /*3*/{as::vec3_t{1.0f, -1.0f, 1.0f}, as::vec3_t{0.0f, -1.0f, 0.0f}},// fbr
+    /*6*/{as::vec3_t{-1.0f, -1.0f, -1.0f}, as::vec3_t{0.0f, -1.0f, 0.0f}},// nbl
+    /*6*/{as::vec3_t{-1.0f, -1.0f, -1.0f}, as::vec3_t{0.0f, -1.0f, 0.0f}},// nbl
+    /*3*/{as::vec3_t{1.0f, -1.0f, 1.0f}, as::vec3_t{0.0f, -1.0f, 0.0f}},// fbr
+    /*7*/{as::vec3_t{1.0f, -1.0f, -1.0f}, as::vec3_t{0.0f, -1.0f, 0.0f}},// nbr
+};
+// clang-format on
 
 static bgfx::ShaderHandle createShader(
     const std::string& shader, const char* name)
@@ -214,18 +268,22 @@ int main(int argc, char** argv)
             .add(bgfx::Attrib::Color0, 4, bgfx::AttribType::Uint8, true)
             .end();
 
-        bgfx::VertexLayout pos_norm_uv_layout;
-        pos_norm_uv_layout.begin()
+        bgfx::VertexLayout pos_norm_vert_layout;
+        pos_norm_vert_layout.begin()
             .add(bgfx::Attrib::Position, 3, bgfx::AttribType::Float)
             .add(bgfx::Attrib::Normal, 3, bgfx::AttribType::Float, true)
             // .add(bgfx::Attrib::TexCoord0, 2, bgfx::AttribType::Float)
             .end();
 
-        bgfx::VertexBufferHandle vbh = bgfx::createVertexBuffer(
-            bgfx::makeRef(cube_vertices, sizeof(cube_vertices)),
+        bgfx::VertexBufferHandle cube_col_vbh = bgfx::createVertexBuffer(
+            bgfx::makeRef(cube_vertices_col, sizeof(cube_vertices_col)),
             pos_col_vert_layout);
-        bgfx::IndexBufferHandle ibh = bgfx::createIndexBuffer(
-            bgfx::makeRef(cube_tri_list, sizeof(cube_tri_list)));
+        bgfx::IndexBufferHandle cube_col_ibh = bgfx::createIndexBuffer(
+            bgfx::makeRef(cube_tri_list_col, sizeof(cube_tri_list_col)));
+
+        bgfx::VertexBufferHandle cube_norm_vbh = bgfx::createVertexBuffer(
+            bgfx::makeRef(cube_vertices_norm, sizeof(cube_vertices_norm)),
+            pos_norm_vert_layout);
 
         const bgfx::ProgramHandle program_norm =
             createShaderProgram(
@@ -237,10 +295,16 @@ int main(int argc, char** argv)
                 "shader/simple/v_simple.bin", "shader/simple/f_simple.bin")
                 .value_or(bgfx::ProgramHandle(BGFX_INVALID_HANDLE));
 
+        const bgfx::UniformHandle u_light_dir =
+            bgfx::createUniform("u_lightDir", bgfx::UniformType::Vec4, 1);
+
+        as::vec3_t light_dir{0.0f, 1.0f, -1.0f};
+
         asc::Camera camera{};
         // initial camera position and orientation
         auto cam_start = as::vec3_t{0.0f};
         camera.look_at = cam_start;
+        // camera.focal_dist = -10.0f;
 
         // initial mouse state
         MouseState mouse_state = mouseState();
@@ -249,6 +313,7 @@ int main(int argc, char** argv)
         asc::CameraControl camera_control{};
         camera_control.pitch = camera.pitch;
         camera_control.yaw = camera.yaw;
+        // camera_control.dolly = -10.0f;
 
         // camera properties
         asc::CameraProperties camera_props{};
@@ -334,90 +399,164 @@ int main(int argc, char** argv)
                     + cam_orientation * as::vec3_t::axis_z(camera_adjust);
 
                 static float scale = 14.0f;
-                generatePointData(points, dimension, scale, offset);
-                generateCellData(cellPositions, cellValues, points, dimension);
-
                 static float threshold = 4.0f;
-                auto triangles =
-                    mc::march(cellPositions, cellValues, dimension, threshold);
 
-                std::vector<as::index_t> indices;
-                indices.resize(triangles.size() * 3);
+                {
+                    generatePointData(points, dimension, scale, offset);
+                    generateCellData(
+                        cellPositions, cellValues, points, dimension);
 
-                as::index_t index = 0;
-                as::index_t unique = 0;
-                for (const auto& tri : triangles) {
-                    for (const auto& vert : tri.verts_) {
-                        const auto exists = unique_verts.find(vert);
-                        if (exists == std::end(unique_verts)) {
-                            filtered_verts.push_back(vert);
-                            unique_verts.insert({vert, unique});
-                            indices[index] = unique;
-                            unique++;
-                        } else {
-                            indices[index] = exists->second;
+                    auto triangles = mc::march(
+                        cellPositions, cellValues, dimension, threshold);
+
+                    std::vector<as::index_t> indices;
+                    indices.resize(triangles.size() * 3);
+
+                    as::index_t index = 0;
+                    as::index_t unique = 0;
+                    for (const auto& tri : triangles) {
+                        for (const auto& vert : tri.verts_) {
+                            const auto exists = unique_verts.find(vert);
+                            if (exists == std::end(unique_verts)) {
+                                filtered_verts.push_back(vert);
+                                unique_verts.insert({vert, unique});
+                                indices[index] = unique;
+                                unique++;
+                            } else {
+                                indices[index] = exists->second;
+                            }
+                            index++;
                         }
-                        index++;
                     }
+
+                    uint32_t max_vertices = 32 << 10;
+                    bgfx::TransientVertexBuffer tvb;
+                    bgfx::allocTransientVertexBuffer(
+                        &tvb, max_vertices, pos_norm_vert_layout);
+
+                    bgfx::TransientIndexBuffer tib;
+                    bgfx::allocTransientIndexBuffer(&tib, max_vertices);
+
+                    PosNormalUv* vertex = (PosNormalUv*)tvb.data;
+                    int16_t* index_data = (int16_t*)tib.data;
+
+                    for (as::index_t i = 0; i < filtered_verts.size(); i++) {
+                        vertex[i].normal = as::vec3_t::zero();
+                        vertex[i].position = filtered_verts[i];
+                    }
+
+                    for (as::index_t indice = 0; indice < indices.size();
+                         indice++) {
+                        index_data[indice] = indices[indice];
+                    }
+
+                    for (as::index_t indice = 0; indice < indices.size();
+                         indice += 3) {
+                        const as::vec3_t e1 =
+                            filtered_verts[indices[indice]]
+                            - filtered_verts[indices[indice + 1]];
+                        const as::vec3_t e2 =
+                            filtered_verts[indices[indice + 2]]
+                            - filtered_verts[indices[indice + 1]];
+                        const as::vec3_t normal = as::vec3::cross(e1, e2);
+
+                        vertex[indices[indice]].normal += normal;
+                        vertex[indices[indice + 1]].normal += normal;
+                        vertex[indices[indice + 2]].normal += normal;
+                    }
+
+                    for (as::index_t i = 0; i < filtered_verts.size(); i++) {
+                        vertex[i].normal = as::vec::normalize(vertex[i].normal);
+                    }
+
+                    float model[16];
+                    as::mat::to_arr(as::mat4_t::identity(), model);
+                    bgfx::setTransform(model);
+
+                    bgfx::setIndexBuffer(&tib, 0, indices.size());
+                    bgfx::setVertexBuffer(0, &tvb, 0, filtered_verts.size());
+                    bgfx::setState(BGFX_STATE_DEFAULT);
+                    bgfx::submit(0, program_norm);
+
+                    bgfx::TransientVertexBuffer tvb2;
+                    bgfx::allocTransientVertexBuffer(
+                        &tvb2, max_vertices, pos_col_vert_layout);
+
+                    PosColorVertex* vertex_normals = (PosColorVertex*)tvb2.data;
+
+                    for (as::index_t i = 0; i < filtered_verts.size(); i++) {
+                        vertex_normals->position = vertex[i].position;
+                        vertex_normals->abgr = 0xff000000;
+                        vertex_normals++;
+                        vertex_normals->position =
+                            vertex[i].position + vertex[i].normal;
+                        vertex_normals->abgr = 0xff000000;
+                        vertex_normals++;
+                    }
+
+                    float m[16];
+                    as::mat::to_arr(as::mat4_t::identity(), m);
+
+                    bgfx::setTransform(m);
+
+                    bgfx::setState(BGFX_STATE_DEFAULT | BGFX_STATE_PT_LINES);
+
+                    bgfx::setVertexBuffer(
+                        0, &tvb2, 0, filtered_verts.size() * 2);
+                    bgfx::submit(0, program_col);
                 }
+
+                float cmodel[16];
+                // as::mat::to_arr(
+                //     as::mat4::from_mat3_vec3(cam_orientation, lookat),
+                //     cmodel);
+
+                static float spin_speed = 0.0f;
+                static float rot = 0.0f;
+                as::mat::to_arr(
+                    as::mat4::from_mat3_vec3(
+                        as::mat3::rotation_y(rot),
+                        as::vec3_t{0.0f, 0.0f, 10.0f}),
+                    cmodel);
+                rot += dt * spin_speed;
+
+                bgfx::setState(BGFX_STATE_DEFAULT);
+
+                bgfx::setUniform(u_light_dir, (void*)&light_dir, 1);
+
+                bgfx::setTransform(cmodel);
+
+                bgfx::setVertexBuffer(0, cube_norm_vbh);
+                bgfx::submit(0, program_norm);
 
                 uint32_t max_vertices = 32 << 10;
                 bgfx::TransientVertexBuffer tvb;
                 bgfx::allocTransientVertexBuffer(
-                    &tvb, max_vertices, pos_norm_uv_layout);
+                    &tvb, max_vertices, pos_col_vert_layout);
 
-                bgfx::TransientIndexBuffer tib;
-                bgfx::allocTransientIndexBuffer(&tib, max_vertices);
+                PosColorVertex* vertex = (PosColorVertex*)tvb.data;
 
-                PosNormalUv* vertex = (PosNormalUv*)tvb.data;
-                int16_t* index_data = (int16_t*)tib.data;
-
-                for (as::index_t i = 0; i < filtered_verts.size(); i++) {
-                    vertex[i].normal = as::vec3_t::zero();
-                    vertex[i].position = filtered_verts[i];
+                for (as::index_t i = 0; i < 36; i++) {
+                    vertex->position = cube_vertices_norm[i].position;
+                    vertex->abgr = 0xff000000;
+                    vertex++;
+                    vertex->position = cube_vertices_norm[i].position
+                                     + cube_vertices_norm[i].normal;
+                    vertex->abgr = 0xff000000;
+                    vertex++;
                 }
 
-                for (as::index_t indice = 0; indice < indices.size();
-                     indice++) {
-                    index_data[indice] = indices[indice];
-                }
+                float m[16];
+                as::mat::to_arr(as::mat4_t::identity(), m);
 
-                for (as::index_t indice = 0; indice < indices.size();
-                     indice += 3) {
-                    const as::vec3_t e1 = filtered_verts[indices[indice]]
-                                        - filtered_verts[indices[indice + 1]];
-                    const as::vec3_t e2 = filtered_verts[indices[indice + 2]]
-                                        - filtered_verts[indices[indice + 1]];
-                    const as::vec3_t normal =
-                        as::vec::abs(as::vec3::cross(e1, e2));
-                    vertex[indices[indice]].normal += normal;
-                    vertex[indices[indice + 1]].normal += normal;
-                    vertex[indices[indice + 2]].normal += normal;
-                }
-
-                for (as::index_t i = 0; i < filtered_verts.size(); i++) {
-                    vertex[i].normal = as::vec::normalize(vertex[i].normal);
-                }
-
-                float model[16];
-                as::mat::to_arr(as::mat4_t::identity(), model);
-                bgfx::setTransform(model);
-
-                bgfx::setIndexBuffer(&tib, 0, indices.size());
-                bgfx::setVertexBuffer(0, &tvb, 0, filtered_verts.size());
-                bgfx::setState(BGFX_STATE_DEFAULT);
-                bgfx::submit(0, program_norm);
-
-                float cmodel[16];
-                as::mat::to_arr(
-                    as::mat4::from_mat3_vec3(cam_orientation, lookat), cmodel);
                 bgfx::setTransform(cmodel);
 
-                bgfx::setVertexBuffer(0, vbh);
-                bgfx::setIndexBuffer(ibh);
+                bgfx::setState(BGFX_STATE_DEFAULT | BGFX_STATE_PT_LINES);
+
+                bgfx::setVertexBuffer(0, &tvb, 0, 72);
                 bgfx::submit(0, program_col);
 
-                const double toMs = 1000.0 / freq;
+                const double to_ms = 1000.0 / freq;
                 auto marching_cube_time =
                     double(bx::getHPCounter() - marching_cube_begin);
 
@@ -427,8 +566,14 @@ int main(int argc, char** argv)
 
                 ImGui::Text("Marching Cube update: ");
                 ImGui::SameLine(160);
-                ImGui::Text("%f", marching_cube_time * toMs);
+                ImGui::Text("%f", marching_cube_time * to_ms);
 
+                float light_dir_arr[3];
+                as::vec::to_arr(light_dir, light_dir_arr);
+                ImGui::InputFloat3("Light Dir", light_dir_arr, 3);
+                light_dir = as::vec::from_arr(light_dir_arr);
+
+                ImGui::SliderFloat("Spin Speed", &spin_speed, 0.0f, 10.0f);
                 ImGui::SliderFloat("Threshold", &threshold, 0.0f, 10.0f);
                 ImGui::SliderFloat("Back", &camera_adjust, 0.0f, 100.0f);
                 ImGui::SliderFloat("Scale", &scale, 0.0f, 100.0f);
@@ -460,8 +605,8 @@ int main(int argc, char** argv)
 
                 bgfx::setTransform(model);
 
-                bgfx::setVertexBuffer(0, vbh);
-                bgfx::setIndexBuffer(ibh);
+                bgfx::setVertexBuffer(0, cube_col_vbh);
+                bgfx::setIndexBuffer(cube_col_ibh);
 
                 bgfx::submit(1, program_col);
             }
@@ -478,8 +623,10 @@ int main(int argc, char** argv)
         mc::destroyCellPositions(cellPositions, dimension);
         mc::destroyPointVolume(points, dimension);
 
-        bgfx::destroy(vbh);
-        bgfx::destroy(ibh);
+        bgfx::destroy(u_light_dir);
+        bgfx::destroy(cube_col_vbh);
+        bgfx::destroy(cube_col_ibh);
+        bgfx::destroy(cube_norm_vbh);
         bgfx::destroy(program_norm);
         bgfx::destroy(program_col);
 
