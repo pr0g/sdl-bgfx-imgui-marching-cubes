@@ -400,10 +400,11 @@ int main(int argc, char** argv)
                     lookat
                     + cam_orientation * as::vec3_t::axis_z(camera_adjust);
 
+                static float tesselation = 1.0f;
                 static float scale = 14.0f;
                 static float threshold = 4.0f; // initial
 
-                generatePointData(points, dimension, scale, offset);
+                generatePointData(points, dimension, scale, tesselation, offset);
                 generateCellData(cellPositions, cellValues, points, dimension);
 
                 auto triangles =
@@ -573,6 +574,7 @@ int main(int argc, char** argv)
                 ImGui::SliderFloat("Threshold", &threshold, 0.0f, 10.0f);
                 ImGui::SliderFloat("Back", &camera_adjust, 0.0f, 100.0f);
                 ImGui::SliderFloat("Scale", &scale, 0.0f, 100.0f);
+                ImGui::SliderFloat("Tesselation", &tesselation, 0.001f, 10.0f);
             }
 
             // gizmo cube

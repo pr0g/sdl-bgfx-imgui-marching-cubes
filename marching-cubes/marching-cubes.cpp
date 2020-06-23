@@ -67,16 +67,16 @@ static const float g_threshold_scale = 10.0f;
 
 void generatePointData(
     Point*** points, const int dimension, const float scale,
-    const as::vec3_t& cam)
+    const float tesselation, const as::vec3_t& cam)
 {
     for (int z = 0; z < dimension; ++z) {
         for (int y = 0; y < dimension; ++y) {
             for (int x = 0; x < dimension; ++x) {
-
-                as::vec3_t round_cam = as::vec::round(cam);
+                const as::vec3_t round_cam = as::vec::round(cam);
 
                 as::vec3_t pos{
-                    as::vec3_t{as::real_t(x), as::real_t(y), as::real_t(z)}};
+                    as::vec3_t{as::real_t(x), as::real_t(y), as::real_t(z)}
+                    * tesselation};
 
                 points[z][y][x].val_ =
                     ((glm::perlin(glm_vec3((pos + round_cam) / scale)) + 1.0f)
@@ -84,10 +84,9 @@ void generatePointData(
                     * g_threshold_scale;
 
                 points[z][y][x].position_ =
-                    as::vec3_t{
-                        as::real_t(x) - (dimension * 0.5f),
-                        as::real_t(y) - (dimension * 0.5f),
-                        as::real_t(z) - (dimension * 0.5f)}
+                    as::vec3_t{pos}
+                    - (as::vec3_t{as::real_t(dimension) /* * tesselation */}
+                       * 0.5f)
                     + round_cam;
             }
         }
