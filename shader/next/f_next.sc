@@ -13,5 +13,5 @@ void main() {
     float light_amount = max(0.0, dot(normal, normalize(u_lightDir.xyz)));
     vec3 color = abs(normal);
     gl_FragColor = vec4(color * light_amount /* + rim_amount */, 1.0);
-    // vec4(normalize(abs(to_camera)), 1.0); // debug
+    // gl_FragColor = vec4(normalize(abs(to_camera)), 1.0); // debug
 }
