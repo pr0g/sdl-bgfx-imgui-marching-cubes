@@ -74,9 +74,13 @@ void generatePointData(
             for (int x = 0; x < dimension; ++x) {
                 const as::vec3_t round_cam = as::vec::round(cam);
 
-                as::vec3_t pos{
-                    as::vec3_t{as::real_t(x), as::real_t(y), as::real_t(z)}
-                    * tesselation};
+                const as::vec3_t offset{
+                    (1.0f - tesselation) * dimension * 0.5f};
+
+                const as::vec3_t pos =
+                    (as::vec3_t{as::real_t(x), as::real_t(y), as::real_t(z)}
+                     * tesselation)
+                    + offset;
 
                 points[z][y][x].val_ =
                     ((glm::perlin(glm_vec3((pos + round_cam) / scale)) + 1.0f)
@@ -84,9 +88,7 @@ void generatePointData(
                     * g_threshold_scale;
 
                 points[z][y][x].position_ =
-                    as::vec3_t{pos}
-                    - (as::vec3_t{as::real_t(dimension) /* * tesselation */}
-                       * 0.5f)
+                    pos - (as::vec3_t{as::real_t(dimension)} * 0.5f)
                     + round_cam;
             }
         }
