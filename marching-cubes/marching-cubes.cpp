@@ -65,6 +65,14 @@ CellPositions*** createCellPositions(const int dimension)
 
 static const float g_threshold_scale = 10.0f;
 
+as::vec3_t round(const as::vec3_t& vec, const float tess)
+{
+    return as::vec3_t{
+        floorr((vec.x / tess) + 0.5f) * tess,
+        floorr((vec.y / tess) + 0.5f) * tess,
+        floorr((vec.z / tess) + 0.5f) * tess};
+}
+
 void generatePointData(
     Point*** points, const int dimension, const float scale,
     const float tesselation, const as::vec3_t& cam)
@@ -72,7 +80,7 @@ void generatePointData(
     for (int z = 0; z < dimension; ++z) {
         for (int y = 0; y < dimension; ++y) {
             for (int x = 0; x < dimension; ++x) {
-                const as::vec3_t round_cam = as::vec::round(cam);
+                const as::vec3_t round_cam = round(cam, tesselation);
 
                 const as::vec3_t offset{
                     (1.0f - tesselation) * dimension * 0.5f};
