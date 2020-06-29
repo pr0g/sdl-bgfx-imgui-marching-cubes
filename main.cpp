@@ -331,6 +331,7 @@ int main(int argc, char** argv)
         auto cellPositions = mc::createCellPositions(dimension);
 
         std::vector<as::vec3_t> filtered_verts;
+        std::vector<as::vec3_t> filtered_norms;
         std::unordered_map<
             as::vec3_t, as::index_t, std::hash<as::vec3_t>, Vec3EqualFn>
             unique_verts;
@@ -390,6 +391,8 @@ int main(int argc, char** argv)
 
                 auto marching_cube_begin = bx::getHPCounter();
 
+                static bool analytical_normals = false;
+
                 /* static */ as::mat3_t cam_orientation =
                     as::mat3::from_mat4(camera.transform());
 
@@ -404,7 +407,8 @@ int main(int argc, char** argv)
                 static float scale = 14.0f;
                 static float threshold = 4.0f; // initial
 
-                generatePointData(points, dimension, scale, tesselation, offset);
+                generatePointData(
+                    points, dimension, scale, tesselation, offset);
                 generateCellData(cellPositions, cellValues, points, dimension);
 
                 auto triangles =
@@ -416,10 +420,13 @@ int main(int argc, char** argv)
                 as::index_t index = 0;
                 as::index_t unique = 0;
                 for (const auto& tri : triangles) {
-                    for (const auto& vert : tri.verts_) {
+                    for (int64_t i = 0; i < 3; ++i) {
+                        const auto vert = tri.verts_[i];
+                        const auto norm = tri.norms_[i];
                         const auto exists = unique_verts.find(vert);
                         if (exists == std::end(unique_verts)) {
                             filtered_verts.push_back(vert);
+                            filtered_norms.push_back(norm);
                             unique_verts.insert({vert, unique});
                             indices[index] = unique;
                             unique++;
@@ -442,7 +449,9 @@ int main(int argc, char** argv)
                 int16_t* index_data = (int16_t*)tib.data;
 
                 for (as::index_t i = 0; i < filtered_verts.size(); i++) {
-                    vertex[i].normal = as::vec3_t::zero();
+                    vertex[i].normal = analytical_normals
+                                         ? as::vec::normalize(filtered_norms[i])
+                                         : as::vec3_t::zero();
                     vertex[i].position = filtered_verts[i];
                 }
 
@@ -451,21 +460,25 @@ int main(int argc, char** argv)
                     index_data[indice] = indices[indice];
                 }
 
-                for (as::index_t indice = 0; indice < indices.size();
-                     indice += 3) {
-                    const as::vec3_t e1 = filtered_verts[indices[indice]]
-                                        - filtered_verts[indices[indice + 1]];
-                    const as::vec3_t e2 = filtered_verts[indices[indice + 2]]
-                                        - filtered_verts[indices[indice + 1]];
-                    const as::vec3_t normal = as::vec3::cross(e1, e2);
+                if (!analytical_normals) {
+                    for (as::index_t indice = 0; indice < indices.size();
+                         indice += 3) {
+                        const as::vec3_t e1 =
+                            filtered_verts[indices[indice]]
+                            - filtered_verts[indices[indice + 1]];
+                        const as::vec3_t e2 =
+                            filtered_verts[indices[indice + 2]]
+                            - filtered_verts[indices[indice + 1]];
+                        const as::vec3_t normal = as::vec3::cross(e1, e2);
 
-                    vertex[indices[indice]].normal += normal;
-                    vertex[indices[indice + 1]].normal += normal;
-                    vertex[indices[indice + 2]].normal += normal;
-                }
+                        vertex[indices[indice]].normal += normal;
+                        vertex[indices[indice + 1]].normal += normal;
+                        vertex[indices[indice + 2]].normal += normal;
+                    }
 
-                for (as::index_t i = 0; i < filtered_verts.size(); i++) {
-                    vertex[i].normal = as::vec::normalize(vertex[i].normal);
+                    for (as::index_t i = 0; i < filtered_verts.size(); i++) {
+                        vertex[i].normal = as::vec::normalize(vertex[i].normal);
+                    }
                 }
 
                 float model[16];
@@ -575,6 +588,7 @@ int main(int argc, char** argv)
                 ImGui::SliderFloat("Back", &camera_adjust, 0.0f, 100.0f);
                 ImGui::SliderFloat("Scale", &scale, 0.0f, 100.0f);
                 ImGui::SliderFloat("Tesselation", &tesselation, 0.001f, 10.0f);
+                ImGui::Checkbox("Analytical Normals", &analytical_normals);
             }
 
             // gizmo cube
@@ -610,6 +624,7 @@ int main(int argc, char** argv)
             }
 
             filtered_verts.clear();
+            filtered_norms.clear();
             unique_verts.clear();
 
             ImGui::Render();

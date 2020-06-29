@@ -11,6 +11,7 @@ struct Point
 {
     float val_;
     as::vec3_t position_;
+    as::vec3_t normal_;
 };
 
 struct CellValues
@@ -21,17 +22,21 @@ struct CellValues
 struct CellPositions
 {
     as::vec3_t points_[8];
+    as::vec3_t normals_[8];
 };
 
 struct Triangle
 {
     Triangle() = default;
-    Triangle(const as::vec3_t& a, const as::vec3_t& b, const as::vec3_t& c)
-        : verts_{a, b, c}
+    Triangle(
+        const as::vec3_t& a, const as::vec3_t& b, const as::vec3_t& c,
+        const as::vec3_t& an, const as::vec3_t& bn, const as::vec3_t& cn)
+        : verts_{a, b, c}, norms_{an, bn, cn}
     {
     }
 
     as::vec3_t verts_[3];
+    as::vec3_t norms_[3];
 };
 
 Point*** createPointVolume(int dimension);
