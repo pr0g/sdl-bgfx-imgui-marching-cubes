@@ -24,7 +24,7 @@
 struct PosColorVertex
 {
     as::vec3_t position;
-    as::u32 abgr;
+    uint32_t abgr;
 };
 
 struct PosNormalUv
@@ -380,12 +380,12 @@ int main(int argc, char** argv)
                 float view[16];
                 as::mat::to_arr(camera.view(), view);
 
+                const as::mat4_t persp = as::view::perspective_d3d_lh(
+                    as::deg_to_rad(35.0f), float(width) / float(height), 0.01f,
+                    100.0f);
+
                 float proj[16];
-                as::mat::to_arr(
-                    as::view::perspective_d3d_lh(
-                        as::deg_to_rad(35.0f), float(width) / float(height),
-                        0.01f, 100.0f),
-                    proj);
+                as::mat::to_arr(persp, proj);
 
                 bgfx::setViewTransform(0, view, proj);
 
@@ -518,18 +518,16 @@ int main(int argc, char** argv)
                     0, &mc_line_tvb, 0, filtered_verts.size() * 2);
                 bgfx::submit(0, program_col);
 
-                float cmodel[16];
-                // as::mat::to_arr(
-                //     as::mat4::from_mat3_vec3(cam_orientation, lookat),
-                //     cmodel);
-
-                static float spin_speed = 0.0f;
                 static float rot = 0.0f;
-                as::mat::to_arr(
-                    as::mat4::from_mat3_vec3(
-                        as::mat3::rotation_y(rot),
-                        as::vec3_t{0.0f, 0.0f, 10.0f}),
-                    cmodel);
+                static float shear1 = 0.0f;
+                static float shear2 = 0.0f;
+                static float spin_speed = 0.0f;
+
+                const auto a = as::mat4::shear_y(shear1, shear2);
+                const auto m = as::mat4::from_mat3(as::mat3::rotation_y(rot));
+
+                float cmodel[16];
+                as::mat::to_arr(a, cmodel);
                 rot += dt * spin_speed;
 
                 bgfx::setState(BGFX_STATE_DEFAULT);
@@ -570,6 +568,17 @@ int main(int argc, char** argv)
                 auto marching_cube_time =
                     double(bx::getHPCounter() - marching_cube_begin);
 
+                // project from world to screen
+                const as::vec4_t clip =
+                    persp * camera.view() * as::mat4::translation(a);
+                const as::vec3_t ndc = as::vec3::from_vec4(clip / clip.w);
+                const as::vec2_t window =
+                    (as::vec2::from_vec3(ndc) + as::vec2_t{1.0f}) / 2.0f;
+
+                ImGui::SetWindowPos(ImVec2(
+                    window.x * float(width),
+                    height - (window.y * float(height))));
+
                 ImGui::Text("Framerate: ");
                 ImGui::SameLine(100);
                 ImGui::Text("%f", framerate);
@@ -584,6 +593,8 @@ int main(int argc, char** argv)
                 light_dir = as::vec::from_arr(light_dir_arr);
 
                 ImGui::SliderFloat("Spin Speed", &spin_speed, 0.0f, 10.0f);
+                ImGui::SliderFloat("sheer1", &shear1, -10.0f, 10.0f);
+                ImGui::SliderFloat("sheer2", &shear2, -10.0f, 10.0f);
                 ImGui::SliderFloat("Threshold", &threshold, 0.0f, 10.0f);
                 ImGui::SliderFloat("Back", &camera_adjust, 0.0f, 100.0f);
                 ImGui::SliderFloat("Scale", &scale, 0.0f, 100.0f);

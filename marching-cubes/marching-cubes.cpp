@@ -167,9 +167,9 @@ static const float g_threshold_scale = 10.0f;
 as::vec3_t round(const as::vec3_t& vec, const float tess)
 {
     return as::vec3_t{
-        floorr((vec.x / tess) + 0.5f) * tess,
-        floorr((vec.y / tess) + 0.5f) * tess,
-        floorr((vec.z / tess) + 0.5f) * tess};
+        std::floor((vec.x / tess) + 0.5f) * tess,
+        std::floor((vec.y / tess) + 0.5f) * tess,
+        std::floor((vec.z / tess) + 0.5f) * tess};
 }
 
 void generatePointData(
