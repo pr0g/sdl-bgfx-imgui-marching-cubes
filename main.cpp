@@ -304,7 +304,7 @@ int main(int argc, char** argv)
 
         asc::Camera camera{};
         // initial camera position and orientation
-        auto cam_start = as::vec3_t{0.0f};
+        auto cam_start = as::point3_t{0.0f};
         camera.look_at = cam_start;
         // camera.focal_dist = -10.0f;
 
@@ -378,8 +378,7 @@ int main(int argc, char** argv)
             // marching cube scene
             {
                 float view[16];
-                as::mat::to_arr(camera.view(), view);
-
+                as::mat::to_arr(as::mat4::from_affine(camera.view()), view);
                 const as::mat4_t persp = as::view::perspective_d3d_lh(
                     as::deg_to_rad(35.0f), float(width) / float(height), 0.01f,
                     100.0f);
@@ -392,14 +391,14 @@ int main(int argc, char** argv)
                 auto marching_cube_begin = bx::getHPCounter();
 
                 static bool analytical_normals = false;
+                static bool draw_normals = false;
 
-                /* static */ as::mat3_t cam_orientation =
-                    as::mat3::from_mat4(camera.transform());
+                /* static */ as::mat3_t cam_orientation = camera.transform().rotation;
 
                 static float camera_adjust = (float(dimension) * 0.5f) + 1.0f;
 
-                /* static */ const as::vec3_t lookat = camera.look_at;
-                const as::vec3_t offset =
+                /* static */ const as::point3_t lookat = camera.look_at;
+                const as::point3_t offset =
                     lookat
                     + cam_orientation * as::vec3_t::axis_z(camera_adjust);
 
@@ -408,7 +407,7 @@ int main(int argc, char** argv)
                 static float threshold = 4.0f; // initial
 
                 generatePointData(
-                    points, dimension, scale, tesselation, offset);
+                    points, dimension, scale, tesselation, offset.as_vec3());
                 generateCellData(cellPositions, cellValues, points, dimension);
 
                 auto triangles =
@@ -508,15 +507,17 @@ int main(int argc, char** argv)
                     vertex_normals++;
                 }
 
-                float identity[16];
-                as::mat::to_arr(as::mat4_t::identity(), identity);
-                bgfx::setTransform(identity);
+                if (draw_normals) {
+                    float identity[16];
+                    as::mat::to_arr(as::mat4_t::identity(), identity);
+                    bgfx::setTransform(identity);
 
-                bgfx::setState(BGFX_STATE_DEFAULT | BGFX_STATE_PT_LINES);
+                    bgfx::setState(BGFX_STATE_DEFAULT | BGFX_STATE_PT_LINES);
 
-                bgfx::setVertexBuffer(
-                    0, &mc_line_tvb, 0, filtered_verts.size() * 2);
-                bgfx::submit(0, program_col);
+                    bgfx::setVertexBuffer(
+                        0, &mc_line_tvb, 0, filtered_verts.size() * 2);
+                    bgfx::submit(0, program_col);
+                }
 
                 static float rot = 0.0f;
                 static float shear1 = 0.0f;
@@ -569,15 +570,15 @@ int main(int argc, char** argv)
                     double(bx::getHPCounter() - marching_cube_begin);
 
                 // project from world to screen
-                const as::vec4_t clip =
-                    persp * camera.view() * as::mat4::translation(a);
-                const as::vec3_t ndc = as::vec3::from_vec4(clip / clip.w);
-                const as::vec2_t window =
-                    (as::vec2::from_vec3(ndc) + as::vec2_t{1.0f}) / 2.0f;
+                // const as::vec4_t clip =
+                //     persp * as::mat4::from_affine(camera.view()) * as::mat4::translation(a);
+                // const as::vec3_t ndc = as::vec3::from_vec4(clip / clip.w);
+                // const as::vec2_t window =
+                //     (as::vec2::from_vec3(ndc) + as::vec2_t{1.0f}) / 2.0f;
 
-                ImGui::SetWindowPos(ImVec2(
-                    window.x * float(width),
-                    height - (window.y * float(height))));
+                // ImGui::SetWindowPos(ImVec2(
+                //     window.x * float(width),
+                //     height - (window.y * float(height))));
 
                 ImGui::Text("Framerate: ");
                 ImGui::SameLine(100);
@@ -599,6 +600,7 @@ int main(int argc, char** argv)
                 ImGui::SliderFloat("Back", &camera_adjust, 0.0f, 100.0f);
                 ImGui::SliderFloat("Scale", &scale, 0.0f, 100.0f);
                 ImGui::SliderFloat("Tesselation", &tesselation, 0.001f, 10.0f);
+                ImGui::Checkbox("Draw Normals", &draw_normals);
                 ImGui::Checkbox("Analytical Normals", &analytical_normals);
             }
 
@@ -607,7 +609,7 @@ int main(int argc, char** argv)
                 float view[16];
                 as::mat::to_arr(
                     as::mat4::from_mat3_vec3(
-                        as::mat3::from_mat4(camera.view()),
+                        camera.view().rotation,
                         as::vec3_t::axis_z(10.0f)),
                     view);
 
