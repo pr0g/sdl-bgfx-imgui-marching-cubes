@@ -43,11 +43,7 @@ inline bool read_file(const std::string& filename, std::string& fileContents)
         return false;
     }
 
-    const bool success = stream_read_string(file, fileContents);
-
-    file.close();
-
-    return success;
+    return stream_read_string(file, fileContents);
 }
 
 } // namespace fileops
