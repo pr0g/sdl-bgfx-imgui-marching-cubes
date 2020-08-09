@@ -407,7 +407,7 @@ int main(int argc, char** argv)
                 static float threshold = 4.0f; // initial
 
                 generatePointData(
-                    points, dimension, scale, tesselation, offset.as_vec3());
+                    points, dimension, scale, tesselation, offset.as_vec());
                 generateCellData(cellPositions, cellValues, points, dimension);
 
                 auto triangles =
