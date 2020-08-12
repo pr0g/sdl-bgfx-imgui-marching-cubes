@@ -602,6 +602,8 @@ int main(int argc, char** argv)
                 ImGui::SliderFloat("Tesselation", &tesselation, 0.001f, 10.0f);
                 ImGui::Checkbox("Draw Normals", &draw_normals);
                 ImGui::Checkbox("Analytical Normals", &analytical_normals);
+
+                ImGui::InputFloat("Camera Smoothness", &camera_props.look_smoothness, 0.0f, 100.0f);
             }
 
             // gizmo cube
