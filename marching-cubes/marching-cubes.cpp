@@ -1,7 +1,5 @@
 #include "marching-cubes.h"
 
-#include "glm/gtc/noise.hpp"
-
 namespace mc
 {
 
@@ -107,11 +105,6 @@ as::vec4_t noised(as::vec3_t x)
 extern int g_tri_table[256][16];
 extern int g_edge_table[256];
 
-static glm::vec3 glm_vec3(const as::vec3_t& vec)
-{
-    return {vec.x, vec.y, vec.z};
-}
-
 static as::vec3_t interpolate(
     const float level, const as::vec3_t& p1, const as::vec3_t& p2,
     const float v1, const float v2)
@@ -164,14 +157,6 @@ CellPositions*** createCellPositions(const int dimension)
 
 static const float g_threshold_scale = 10.0f;
 
-as::vec3_t round(const as::vec3_t& vec, const float tess)
-{
-    return as::vec3_t{
-        std::floor((vec.x / tess) + 0.5f) * tess,
-        std::floor((vec.y / tess) + 0.5f) * tess,
-        std::floor((vec.z / tess) + 0.5f) * tess};
-}
-
 void generatePointData(
     Point*** points, const int dimension, const float scale,
     const float tesselation, const as::vec3_t& cam)
@@ -179,7 +164,7 @@ void generatePointData(
     for (int z = 0; z < dimension; ++z) {
         for (int y = 0; y < dimension; ++y) {
             for (int x = 0; x < dimension; ++x) {
-                const as::vec3_t round_cam = round(cam, tesselation);
+                const as::vec3_t round_cam = as::vec::snap(cam, tesselation);
 
                 const as::vec3_t offset{
                     (1.0f - tesselation) * dimension * 0.5f};

@@ -25,7 +25,7 @@ enum class MouseButtons : uint8_t
 template<>
 struct bec::EnableBitMaskOperators<MouseButtons>
 {
-    static const bool enable = true;
+    static const bool Enable = true;
 };
 
 struct MouseState
