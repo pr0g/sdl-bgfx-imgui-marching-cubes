@@ -45,38 +45,38 @@
 
 */
 inline void RGBtoHSV(
-    const float fR, const float fG, const float fB, float& fH, float& fS,
-    float& fV)
+  const float fR, const float fG, const float fB, float& fH, float& fS,
+  float& fV)
 {
-    float fCMax = std::max(std::max(fR, fG), fB);
-    float fCMin = std::min(std::min(fR, fG), fB);
-    float fDelta = fCMax - fCMin;
+  float fCMax = std::max(std::max(fR, fG), fB);
+  float fCMin = std::min(std::min(fR, fG), fB);
+  float fDelta = fCMax - fCMin;
 
-    if (fDelta > 0.0f) {
-        if (fCMax == fR) {
-            fH = 60.0f * (fmodf(((fG - fB) / fDelta), 6.0f));
-        } else if (fCMax == fG) {
-            fH = 60.0f * (((fB - fR) / fDelta) + 2.0f);
-        } else if (fCMax == fB) {
-            fH = 60.0f * (((fR - fG) / fDelta) + 4.0f);
-        }
+  if (fDelta > 0.0f) {
+    if (fCMax == fR) {
+      fH = 60.0f * (fmodf(((fG - fB) / fDelta), 6.0f));
+    } else if (fCMax == fG) {
+      fH = 60.0f * (((fB - fR) / fDelta) + 2.0f);
+    } else if (fCMax == fB) {
+      fH = 60.0f * (((fR - fG) / fDelta) + 4.0f);
+    }
 
-        if (fCMax > 0.0f) {
-            fS = fDelta / fCMax;
-        } else {
-            fS = 0.0f;
-        }
-
-        fV = fCMax;
+    if (fCMax > 0.0f) {
+      fS = fDelta / fCMax;
     } else {
-        fH = 0.0f;
-        fS = 0.0f;
-        fV = fCMax;
+      fS = 0.0f;
     }
 
-    if (fH < 0.0f) {
-        fH = 360.0f + fH;
-    }
+    fV = fCMax;
+  } else {
+    fH = 0.0f;
+    fS = 0.0f;
+    fV = fCMax;
+  }
+
+  if (fH < 0.0f) {
+    fH = 360.0f + fH;
+  }
 }
 
 /*! \brief Convert HSV to RGB color space
@@ -95,45 +95,45 @@ inline void RGBtoHSV(
 
 */
 inline void HSVtoRGB(
-    float& fR, float& fG, float& fB, const float fH, const float fS,
-    const float fV)
+  float& fR, float& fG, float& fB, const float fH, const float fS,
+  const float fV)
 {
-    float fC = fV * fS; // Chroma
-    float fHPrime = fmodf(fH / 60.0f, 6.0f);
-    float fX = fC * (1 - fabsf(fmodf(fHPrime, 2.0f) - 1.0f));
-    float fM = fV - fC;
+  float fC = fV * fS; // Chroma
+  float fHPrime = fmodf(fH / 60.0f, 6.0f);
+  float fX = fC * (1 - fabsf(fmodf(fHPrime, 2.0f) - 1.0f));
+  float fM = fV - fC;
 
-    if (0.0f <= fHPrime && fHPrime < 1.0f) {
-        fR = fC;
-        fG = fX;
-        fB = 0.0f;
-    } else if (1.0f <= fHPrime && fHPrime < 2.0f) {
-        fR = fX;
-        fG = fC;
-        fB = 0.0f;
-    } else if (2.0f <= fHPrime && fHPrime < 3.0f) {
-        fR = 0.0f;
-        fG = fC;
-        fB = fX;
-    } else if (3.0f <= fHPrime && fHPrime < 4.0f) {
-        fR = 0.0f;
-        fG = fX;
-        fB = fC;
-    } else if (4.0f <= fHPrime && fHPrime < 5.0f) {
-        fR = fX;
-        fG = 0.0f;
-        fB = fC;
-    } else if (5.0f <= fHPrime && fHPrime < 6.0f) {
-        fR = fC;
-        fG = 0.0f;
-        fB = fX;
-    } else {
-        fR = 0.0f;
-        fG = 0.0f;
-        fB = 0.0f;
-    }
+  if (0.0f <= fHPrime && fHPrime < 1.0f) {
+    fR = fC;
+    fG = fX;
+    fB = 0.0f;
+  } else if (1.0f <= fHPrime && fHPrime < 2.0f) {
+    fR = fX;
+    fG = fC;
+    fB = 0.0f;
+  } else if (2.0f <= fHPrime && fHPrime < 3.0f) {
+    fR = 0.0f;
+    fG = fC;
+    fB = fX;
+  } else if (3.0f <= fHPrime && fHPrime < 4.0f) {
+    fR = 0.0f;
+    fG = fX;
+    fB = fC;
+  } else if (4.0f <= fHPrime && fHPrime < 5.0f) {
+    fR = fX;
+    fG = 0.0f;
+    fB = fC;
+  } else if (5.0f <= fHPrime && fHPrime < 6.0f) {
+    fR = fC;
+    fG = 0.0f;
+    fB = fX;
+  } else {
+    fR = 0.0f;
+    fG = 0.0f;
+    fB = 0.0f;
+  }
 
-    fR += fM;
-    fG += fM;
-    fB += fM;
+  fR += fM;
+  fG += fM;
+  fB += fM;
 }
