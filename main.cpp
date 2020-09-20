@@ -490,8 +490,7 @@ int main(int argc, char** argv)
 
       float proj[16];
       as::mat_to_arr(
-        as::ortho_d3d_lh(-extent, extent, -10.0f, 10.0f, 0.01f, 100.0f),
-        proj);
+        as::ortho_d3d_lh(-extent, extent, -10.0f, 10.0f, 0.01f, 100.0f), proj);
 
       bgfx::setViewTransform(gizmo_view, view, proj);
 

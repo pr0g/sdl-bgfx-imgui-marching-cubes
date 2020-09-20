@@ -31,7 +31,7 @@ struct Triangle
   Triangle(
     const as::vec3_t& a, const as::vec3_t& b, const as::vec3_t& c,
     const as::vec3_t& an, const as::vec3_t& bn, const as::vec3_t& cn)
-      : verts_{a, b, c}, norms_{an, bn, cn}
+    : verts_{a, b, c}, norms_{an, bn, cn}
   {
   }
 
