@@ -142,7 +142,7 @@ struct Vec3EqualFn
 {
   bool operator()(const as::vec3_t& lhs, const as::vec3_t& rhs) const
   {
-    return as::vec::equal(lhs, rhs);
+    return as::vec_equal(lhs, rhs);
   }
 };
 
@@ -319,12 +319,12 @@ int main(int argc, char** argv)
     // marching cube scene
     {
       float view[16];
-      as::mat::to_arr(as::mat4::from_affine(camera.view()), view);
-      const as::mat4_t persp = as::view::perspective_d3d_lh(
+      as::mat_to_arr(as::mat4_from_affine(camera.view()), view);
+      const as::mat4_t persp = as::perspective_d3d_lh(
         as::deg_to_rad(35.0f), float(width) / float(height), 0.01f, 100.0f);
 
       float proj[16];
-      as::mat::to_arr(persp, proj);
+      as::mat_to_arr(persp, proj);
 
       bgfx::setViewTransform(main_view, view, proj);
 
@@ -386,7 +386,7 @@ int main(int argc, char** argv)
 
       for (as::index_t i = 0; i < filtered_verts.size(); i++) {
         vertex[i].normal = analytical_normals
-                           ? as::vec::normalize(filtered_norms[i])
+                           ? as::vec_normalize(filtered_norms[i])
                            : as::vec3_t::zero();
         vertex[i].position = filtered_verts[i];
       }
@@ -401,7 +401,7 @@ int main(int argc, char** argv)
                               - filtered_verts[indices[indice + 1]];
           const as::vec3_t e2 = filtered_verts[indices[indice + 2]]
                               - filtered_verts[indices[indice + 1]];
-          const as::vec3_t normal = as::vec3::cross(e1, e2);
+          const as::vec3_t normal = as::vec3_cross(e1, e2);
 
           vertex[indices[indice]].normal += normal;
           vertex[indices[indice + 1]].normal += normal;
@@ -409,12 +409,12 @@ int main(int argc, char** argv)
         }
 
         for (as::index_t i = 0; i < filtered_verts.size(); i++) {
-          vertex[i].normal = as::vec::normalize(vertex[i].normal);
+          vertex[i].normal = as::vec_normalize(vertex[i].normal);
         }
       }
 
       float model[16];
-      as::mat::to_arr(as::mat4_t::identity(), model);
+      as::mat_to_arr(as::mat4_t::identity(), model);
       bgfx::setTransform(model);
 
       bgfx::setIndexBuffer(&tib, 0, indices.size());
@@ -438,7 +438,7 @@ int main(int argc, char** argv)
         }
 
         float identity[16];
-        as::mat::to_arr(as::mat4_t::identity(), identity);
+        as::mat_to_arr(as::mat4_t::identity(), identity);
         bgfx::setTransform(identity);
 
         bgfx::setState(BGFX_STATE_DEFAULT | BGFX_STATE_PT_LINES);
@@ -466,9 +466,9 @@ int main(int argc, char** argv)
       ImGui::Text("%f", marching_cube_time * to_ms);
 
       float light_dir_arr[3];
-      as::vec::to_arr(light_dir, light_dir_arr);
+      as::vec_to_arr(light_dir, light_dir_arr);
       ImGui::InputFloat3("Light Dir", light_dir_arr, 3);
-      light_dir = as::vec::from_arr(light_dir_arr);
+      light_dir = as::vec_from_arr(light_dir_arr);
 
       ImGui::SliderFloat("Threshold", &threshold, 0.0f, 10.0f);
       ImGui::SliderFloat("Back", &camera_adjust, 0.0f, 100.0f);
@@ -481,24 +481,24 @@ int main(int argc, char** argv)
     // gizmo cube
     {
       float view[16];
-      as::mat::to_arr(
-        as::mat4::from_mat3_vec3(
+      as::mat_to_arr(
+        as::mat4_from_mat3_vec3(
           camera.view().rotation, as::vec3_t::axis_z(10.0f)),
         view);
 
       const float extent = 10.0f * aspect;
 
       float proj[16];
-      as::mat::to_arr(
-        as::view::ortho_d3d_lh(-extent, extent, -10.0f, 10.0f, 0.01f, 100.0f),
+      as::mat_to_arr(
+        as::ortho_d3d_lh(-extent, extent, -10.0f, 10.0f, 0.01f, 100.0f),
         proj);
 
       bgfx::setViewTransform(gizmo_view, view, proj);
 
-      as::mat4_t rot = as::mat4::from_mat3(as::mat3::scale(4.0f));
+      as::mat4_t rot = as::mat4_from_mat3(as::mat3_scale(4.0f));
 
       float model[16];
-      as::mat::to_arr(rot, model);
+      as::mat_to_arr(rot, model);
 
       bgfx::setTransform(model);
 

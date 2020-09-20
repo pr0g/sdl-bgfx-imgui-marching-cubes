@@ -21,9 +21,9 @@ as::vec3_t fract(const as::vec3_t& x)
 as::vec3_t hash(as::vec3_t p)
 {
   p = as::vec3_t(
-    as::vec::dot(p, as::vec3_t(127.1, 311.7, 74.7)),
-    as::vec::dot(p, as::vec3_t(269.5, 183.3, 246.1)),
-    as::vec::dot(p, as::vec3_t(113.5, 271.9, 124.6)));
+    as::vec_dot(p, as::vec3_t(127.1, 311.7, 74.7)),
+    as::vec_dot(p, as::vec3_t(269.5, 183.3, 246.1)),
+    as::vec_dot(p, as::vec3_t(113.5, 271.9, 124.6)));
 
   return as::vec3_t{-1.0f} + as::vec3_t{2.0f} * fract(sin(p) * 43758.5453123f);
 }
@@ -47,7 +47,7 @@ as::vec4_t noised(as::vec3_t x)
   using as::vec4_t;
 
   // grid
-  vec3_t p = as::vec::floor(x);
+  vec3_t p = as::vec_floor(x);
   vec3_t w = fract(x);
 
   // quintic interpolant
@@ -65,14 +65,14 @@ as::vec4_t noised(as::vec3_t x)
   vec3_t gh = hash(p + vec3_t(1.0, 1.0, 1.0));
 
   // projections
-  float va = as::vec::dot(ga, w - vec3_t(0.0, 0.0, 0.0));
-  float vb = as::vec::dot(gb, w - vec3_t(1.0, 0.0, 0.0));
-  float vc = as::vec::dot(gc, w - vec3_t(0.0, 1.0, 0.0));
-  float vd = as::vec::dot(gd, w - vec3_t(1.0, 1.0, 0.0));
-  float ve = as::vec::dot(ge, w - vec3_t(0.0, 0.0, 1.0));
-  float vf = as::vec::dot(gf, w - vec3_t(1.0, 0.0, 1.0));
-  float vg = as::vec::dot(gg, w - vec3_t(0.0, 1.0, 1.0));
-  float vh = as::vec::dot(gh, w - vec3_t(1.0, 1.0, 1.0));
+  float va = as::vec_dot(ga, w - vec3_t(0.0, 0.0, 0.0));
+  float vb = as::vec_dot(gb, w - vec3_t(1.0, 0.0, 0.0));
+  float vc = as::vec_dot(gc, w - vec3_t(0.0, 1.0, 0.0));
+  float vd = as::vec_dot(gd, w - vec3_t(1.0, 1.0, 0.0));
+  float ve = as::vec_dot(ge, w - vec3_t(0.0, 0.0, 1.0));
+  float vf = as::vec_dot(gf, w - vec3_t(1.0, 0.0, 1.0));
+  float vg = as::vec_dot(gg, w - vec3_t(0.0, 1.0, 1.0));
+  float vh = as::vec_dot(gh, w - vec3_t(1.0, 1.0, 1.0));
 
   // interpolation
   float v = va + u.x * (vb - va) + u.y * (vc - va) + u.z * (ve - va)
@@ -157,7 +157,7 @@ void generatePointData(
   for (int z = 0; z < dimension; ++z) {
     for (int y = 0; y < dimension; ++y) {
       for (int x = 0; x < dimension; ++x) {
-        const as::vec3_t round_cam = as::vec::snap(cam, tesselation);
+        const as::vec3_t round_cam = as::vec_snap(cam, tesselation);
 
         const as::vec3_t offset{(1.0f - tesselation) * dimension * 0.5f};
 
