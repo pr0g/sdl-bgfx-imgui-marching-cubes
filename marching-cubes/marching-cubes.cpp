@@ -3,7 +3,7 @@
 namespace mc
 {
 
-as::vec3_t sin(const as::vec3_t& x)
+as::vec3 sin(const as::vec3& x)
 {
   return {sinf(x.x), sinf(x.y), sinf(x.z)};
 }
@@ -13,27 +13,27 @@ float fract(const float x)
   return x - floorf(x);
 }
 
-as::vec3_t fract(const as::vec3_t& x)
+as::vec3 fract(const as::vec3& x)
 {
   return {fract(x.x), fract(x.y), fract(x.z)};
 }
 
-as::vec3_t hash(as::vec3_t p)
+as::vec3 hash(as::vec3 p)
 {
-  p = as::vec3_t(
-    as::vec_dot(p, as::vec3_t(127.1, 311.7, 74.7)),
-    as::vec_dot(p, as::vec3_t(269.5, 183.3, 246.1)),
-    as::vec_dot(p, as::vec3_t(113.5, 271.9, 124.6)));
+  p = as::vec3(
+    as::vec_dot(p, as::vec3(127.1, 311.7, 74.7)),
+    as::vec_dot(p, as::vec3(269.5, 183.3, 246.1)),
+    as::vec_dot(p, as::vec3(113.5, 271.9, 124.6)));
 
-  return as::vec3_t{-1.0f} + as::vec3_t{2.0f} * fract(sin(p) * 43758.5453123f);
+  return as::vec3{-1.0f} + as::vec3{2.0f} * fract(sin(p) * 43758.5453123f);
 }
 
-as::vec3_t yzx(const as::vec3_t& vec)
+as::vec3 yzx(const as::vec3& vec)
 {
   return {vec.y, vec.z, vec.x};
 }
 
-as::vec3_t zxy(const as::vec3_t& vec)
+as::vec3 zxy(const as::vec3& vec)
 {
   return {vec.z, vec.x, vec.y};
 }
@@ -41,38 +41,38 @@ as::vec3_t zxy(const as::vec3_t& vec)
 // ref: https://www.iquilezles.org/www/articles/gradientnoise/gradientnoise.htm
 // gradient noise derivatives - 2017 by Inigo Quilez
 // returns 3D value noise (in .x)  and its derivatives (in .yzw)
-as::vec4_t noised(as::vec3_t x)
+as::vec4 noised(as::vec3 x)
 {
-  using as::vec3_t;
-  using as::vec4_t;
+  using as::vec3;
+  using as::vec4;
 
   // grid
-  vec3_t p = as::vec_floor(x);
-  vec3_t w = fract(x);
+  vec3 p = as::vec_floor(x);
+  vec3 w = fract(x);
 
   // quintic interpolant
-  vec3_t u = w * w * w * (w * (w * vec3_t(6.0f) - vec3_t(15.0)) + vec3_t(10.0));
-  vec3_t du = vec3_t(30.0) * w * w * (w * (w - vec3_t(2.0)) + vec3_t(1.0));
+  vec3 u = w * w * w * (w * (w * vec3(6.0f) - vec3(15.0)) + vec3(10.0));
+  vec3 du = vec3(30.0) * w * w * (w * (w - vec3(2.0)) + vec3(1.0));
 
   // gradients
-  vec3_t ga = hash(p + vec3_t(0.0, 0.0, 0.0));
-  vec3_t gb = hash(p + vec3_t(1.0, 0.0, 0.0));
-  vec3_t gc = hash(p + vec3_t(0.0, 1.0, 0.0));
-  vec3_t gd = hash(p + vec3_t(1.0, 1.0, 0.0));
-  vec3_t ge = hash(p + vec3_t(0.0, 0.0, 1.0));
-  vec3_t gf = hash(p + vec3_t(1.0, 0.0, 1.0));
-  vec3_t gg = hash(p + vec3_t(0.0, 1.0, 1.0));
-  vec3_t gh = hash(p + vec3_t(1.0, 1.0, 1.0));
+  vec3 ga = hash(p + vec3(0.0, 0.0, 0.0));
+  vec3 gb = hash(p + vec3(1.0, 0.0, 0.0));
+  vec3 gc = hash(p + vec3(0.0, 1.0, 0.0));
+  vec3 gd = hash(p + vec3(1.0, 1.0, 0.0));
+  vec3 ge = hash(p + vec3(0.0, 0.0, 1.0));
+  vec3 gf = hash(p + vec3(1.0, 0.0, 1.0));
+  vec3 gg = hash(p + vec3(0.0, 1.0, 1.0));
+  vec3 gh = hash(p + vec3(1.0, 1.0, 1.0));
 
   // projections
-  float va = as::vec_dot(ga, w - vec3_t(0.0, 0.0, 0.0));
-  float vb = as::vec_dot(gb, w - vec3_t(1.0, 0.0, 0.0));
-  float vc = as::vec_dot(gc, w - vec3_t(0.0, 1.0, 0.0));
-  float vd = as::vec_dot(gd, w - vec3_t(1.0, 1.0, 0.0));
-  float ve = as::vec_dot(ge, w - vec3_t(0.0, 0.0, 1.0));
-  float vf = as::vec_dot(gf, w - vec3_t(1.0, 0.0, 1.0));
-  float vg = as::vec_dot(gg, w - vec3_t(0.0, 1.0, 1.0));
-  float vh = as::vec_dot(gh, w - vec3_t(1.0, 1.0, 1.0));
+  float va = as::vec_dot(ga, w - vec3(0.0, 0.0, 0.0));
+  float vb = as::vec_dot(gb, w - vec3(1.0, 0.0, 0.0));
+  float vc = as::vec_dot(gc, w - vec3(0.0, 1.0, 0.0));
+  float vd = as::vec_dot(gd, w - vec3(1.0, 1.0, 0.0));
+  float ve = as::vec_dot(ge, w - vec3(0.0, 0.0, 1.0));
+  float vf = as::vec_dot(gf, w - vec3(1.0, 0.0, 1.0));
+  float vg = as::vec_dot(gg, w - vec3(0.0, 1.0, 1.0));
+  float vh = as::vec_dot(gh, w - vec3(1.0, 1.0, 1.0));
 
   // interpolation
   float v = va + u.x * (vb - va) + u.y * (vc - va) + u.z * (ve - va)
@@ -81,25 +81,25 @@ as::vec4_t noised(as::vec3_t x)
           + u.x * u.y * u.z * (-va + vb + vc - vd + ve - vf - vg + vh);
 
   // clang-format off
-  vec3_t d = ga + u.x * (gb - ga) + u.y * (gc - ga) + u.z * (ge - ga)
+  vec3 d = ga + u.x * (gb - ga) + u.y * (gc - ga) + u.z * (ge - ga)
            + u.x * u.y * (ga - gb - gc + gd) + u.y * u.z * (ga - gc - ge + gg)
            + u.z * u.x * (ga - gb - ge + gf)
            + u.x * u.y * u.z * (-ga + gb + gc - gd + ge - gf - gg + gh)
-           + du * (vec3_t(vb - va, vc - va, ve - va) + yzx(u)
-           * vec3_t(va - vb - vc + vd, va - vc - ve + vg, va - vb - ve + vf)
+           + du * (vec3(vb - va, vc - va, ve - va) + yzx(u)
+           * vec3(va - vb - vc + vd, va - vc - ve + vg, va - vb - ve + vf)
            + zxy(u)
-           * vec3_t(va - vb - ve + vf, va - vb - vc + vd, va - vc - ve + vg)
+           * vec3(va - vb - ve + vf, va - vb - vc + vd, va - vc - ve + vg)
            + yzx(u) * zxy(u) * (-va + vb + vc - vd + ve - vf - vg + vh));
   // clang-format on
 
-  return vec4_t(v, d.x, d.y, d.z);
+  return vec4(v, d.x, d.y, d.z);
 }
 
 extern int g_tri_table[256][16];
 extern int g_edge_table[256];
 
-static as::vec3_t interpolate(
-  const float level, const as::vec3_t& p1, const as::vec3_t& p2, const float v1,
+static as::vec3 interpolate(
+  const float level, const as::vec3& p1, const as::vec3& p2, const float v1,
   const float v2)
 {
   auto v = p1 + (level - v1) * (p2 - p1) / (v2 - v1);
@@ -152,29 +152,29 @@ static const float g_threshold_scale = 10.0f;
 
 void generatePointData(
   Point*** points, const int dimension, const float scale,
-  const float tesselation, const as::vec3_t& cam)
+  const float tesselation, const as::vec3& cam)
 {
   for (int z = 0; z < dimension; ++z) {
     for (int y = 0; y < dimension; ++y) {
       for (int x = 0; x < dimension; ++x) {
-        const as::vec3_t round_cam = as::vec_snap(cam, tesselation);
+        const as::vec3 round_cam = as::vec_snap(cam, tesselation);
 
-        const as::vec3_t offset{(1.0f - tesselation) * dimension * 0.5f};
+        const as::vec3 offset{(1.0f - tesselation) * dimension * 0.5f};
 
-        const as::vec3_t pos =
-          (as::vec3_t{as::real_t(x), as::real_t(y), as::real_t(z)}
+        const as::vec3 pos =
+          (as::vec3{as::real(x), as::real(y), as::real(z)}
            * tesselation)
           + offset;
 
-        const as::vec4_t noise = noised((pos + round_cam) / scale);
+        const as::vec4 noise = noised((pos + round_cam) / scale);
 
-        as::real_t v = ((noise.x + 1.0f) * 0.5f) * g_threshold_scale;
+        as::real v = ((noise.x + 1.0f) * 0.5f) * g_threshold_scale;
 
         points[z][y][x].val_ = v;
-        points[z][y][x].normal_ = as::vec3_t{noise.y, noise.z, noise.w};
+        points[z][y][x].normal_ = as::vec3{noise.y, noise.z, noise.w};
 
         points[z][y][x].position_ =
-          pos - (as::vec3_t{as::real_t(dimension)} * 0.5f) + round_cam;
+          pos - (as::vec3{as::real(dimension)} * 0.5f) + round_cam;
       }
     }
   }
@@ -270,7 +270,7 @@ std::vector<Triangle> march(
         const CellValues& cell = cell_values[z][y][x];
 
         uint8_t cube_index = 0;
-        for (as::index_t i = 0; i < 8; i++) {
+        for (as::index i = 0; i < 8; i++) {
           if (cell.values_[i] < threshold) {
             cube_index |= 1 << i;
           }
@@ -286,8 +286,8 @@ std::vector<Triangle> march(
 
         const CellPositions& cell_position = cell_positions[z][y][x];
 
-        as::vec3_t vertList[12];
-        as::vec3_t normList[12];
+        as::vec3 vertList[12];
+        as::vec3 normList[12];
         const int edges = g_edge_table[cube_index];
         for (int64_t i = 0; i < 12; i++) {
           if ((edges & (1 << i)) != 0) {

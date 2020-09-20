@@ -10,8 +10,8 @@ namespace mc
 struct Point
 {
   float val_;
-  as::vec3_t position_;
-  as::vec3_t normal_;
+  as::vec3 position_;
+  as::vec3 normal_;
 };
 
 struct CellValues
@@ -21,22 +21,22 @@ struct CellValues
 
 struct CellPositions
 {
-  as::vec3_t points_[8];
-  as::vec3_t normals_[8];
+  as::vec3 points_[8];
+  as::vec3 normals_[8];
 };
 
 struct Triangle
 {
   Triangle() = default;
   Triangle(
-    const as::vec3_t& a, const as::vec3_t& b, const as::vec3_t& c,
-    const as::vec3_t& an, const as::vec3_t& bn, const as::vec3_t& cn)
+    const as::vec3& a, const as::vec3& b, const as::vec3& c,
+    const as::vec3& an, const as::vec3& bn, const as::vec3& cn)
     : verts_{a, b, c}, norms_{an, bn, cn}
   {
   }
 
-  as::vec3_t verts_[3];
-  as::vec3_t norms_[3];
+  as::vec3 verts_[3];
+  as::vec3 norms_[3];
 };
 
 Point*** createPointVolume(int dimension);
@@ -45,7 +45,7 @@ CellPositions*** createCellPositions(int dimension);
 
 void generatePointData(
   Point*** points, int dimension, float scale, float tesselation,
-  const as::vec3_t& cam);
+  const as::vec3& cam);
 void generateCellData(
   CellPositions*** cellPositions, CellValues*** cellValues, Point*** points,
   int dimension);

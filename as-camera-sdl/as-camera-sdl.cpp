@@ -72,7 +72,7 @@ void updateCameraControlMouseSdl(
 
   using bec::operator&;
   if ((mouse_state.buttons & MouseButtons::Rmb) == MouseButtons::Rmb) {
-    const as::vec2i_t delta = mouse_state.xy - prev_mouse_state.xy;
+    const as::vec2i delta = mouse_state.xy - prev_mouse_state.xy;
     control.pitch += float(delta[1]) * props.rotate_speed;
     control.yaw += float(delta[0]) * props.rotate_speed;
   }

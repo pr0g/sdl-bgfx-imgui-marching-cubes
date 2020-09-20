@@ -30,7 +30,7 @@ struct bec::EnableBitMaskOperators<MouseButtons>
 
 struct MouseState
 {
-  as::vec2i_t xy;
+  as::vec2i xy;
   MouseButtons buttons;
 };
 
