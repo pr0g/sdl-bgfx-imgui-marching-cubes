@@ -23,25 +23,25 @@
 
 struct PosColorVertex
 {
-  as::vec3_t position;
+  as::vec3 position;
   uint32_t abgr;
 };
 
 struct PosNormalVertex
 {
-  as::vec3_t position;
-  as::vec3_t normal;
+  as::vec3 position;
+  as::vec3 normal;
 };
 
 static const PosColorVertex CubeVerticesCol[] = {
-  {as::vec3_t{-1.0f, 1.0f, 1.0f}, 0xff000000},
-  {as::vec3_t{1.0f, 1.0f, 1.0f}, 0xff0000ff},
-  {as::vec3_t{-1.0f, -1.0f, 1.0f}, 0xff00ff00},
-  {as::vec3_t{1.0f, -1.0f, 1.0f}, 0xff00ffff},
-  {as::vec3_t{-1.0f, 1.0f, -1.0f}, 0xffff0000},
-  {as::vec3_t{1.0f, 1.0f, -1.0f}, 0xffff00ff},
-  {as::vec3_t{-1.0f, -1.0f, -1.0f}, 0xffffff00},
-  {as::vec3_t{1.0f, -1.0f, -1.0f}, 0xffffffff},
+  {as::vec3{-1.0f, 1.0f, 1.0f}, 0xff000000},
+  {as::vec3{1.0f, 1.0f, 1.0f}, 0xff0000ff},
+  {as::vec3{-1.0f, -1.0f, 1.0f}, 0xff00ff00},
+  {as::vec3{1.0f, -1.0f, 1.0f}, 0xff00ffff},
+  {as::vec3{-1.0f, 1.0f, -1.0f}, 0xffff0000},
+  {as::vec3{1.0f, 1.0f, -1.0f}, 0xffff00ff},
+  {as::vec3{-1.0f, -1.0f, -1.0f}, 0xffffff00},
+  {as::vec3{1.0f, -1.0f, -1.0f}, 0xffffffff},
 };
 
 static const uint16_t CubeTriListCol[] = {
@@ -124,9 +124,9 @@ namespace std
 {
 
 template<>
-struct hash<as::vec3_t>
+struct hash<as::vec3>
 {
-  std::size_t operator()(const as::vec3_t& vec) const
+  std::size_t operator()(const as::vec3& vec) const
   {
     size_t seed = 0;
     hashCombine(seed, vec.x);
@@ -140,7 +140,7 @@ struct hash<as::vec3_t>
 
 struct Vec3EqualFn
 {
-  bool operator()(const as::vec3_t& lhs, const as::vec3_t& rhs) const
+  bool operator()(const as::vec3& lhs, const as::vec3& rhs) const
   {
     return as::vec_equal(lhs, rhs);
   }
@@ -246,11 +246,11 @@ int main(int argc, char** argv)
   const bgfx::UniformHandle u_camera_pos =
     bgfx::createUniform("u_cameraPos", bgfx::UniformType::Vec4, 1);
 
-  as::vec3_t light_dir{0.0f, 1.0f, -1.0f};
+  as::vec3 light_dir{0.0f, 1.0f, -1.0f};
 
   asc::Camera camera{};
   // initial camera position and orientation
-  auto cam_start = as::point3_t{0.0f};
+  auto cam_start = as::point3{0.0f};
   camera.look_at = cam_start;
 
   // initial mouse state
@@ -274,10 +274,10 @@ int main(int argc, char** argv)
   auto cell_values = mc::createCellValues(dimension);
   auto cell_positions = mc::createCellPositions(dimension);
 
-  std::vector<as::vec3_t> filtered_verts;
-  std::vector<as::vec3_t> filtered_norms;
+  std::vector<as::vec3> filtered_verts;
+  std::vector<as::vec3> filtered_norms;
   std::unordered_map<
-    as::vec3_t, as::index_t, std::hash<as::vec3_t>, Vec3EqualFn>
+    as::vec3, as::index, std::hash<as::vec3>, Vec3EqualFn>
     unique_verts;
 
   Fps fps;
@@ -320,7 +320,7 @@ int main(int argc, char** argv)
     {
       float view[16];
       as::mat_to_arr(as::mat4_from_affine(camera.view()), view);
-      const as::mat4_t persp = as::perspective_d3d_lh(
+      const as::mat4 persp = as::perspective_d3d_lh(
         as::deg_to_rad(35.0f), float(width) / float(height), 0.01f, 100.0f);
 
       float proj[16];
@@ -333,12 +333,12 @@ int main(int argc, char** argv)
       static bool analytical_normals = true;
       static bool draw_normals = false;
 
-      const as::mat3_t cam_orientation = camera.transform().rotation;
+      const as::mat3 cam_orientation = camera.transform().rotation;
       static float camera_adjust = (float(dimension) * 0.5f) + 1.0f;
 
-      const as::point3_t lookat = camera.look_at;
-      const as::point3_t offset =
-        lookat + cam_orientation * as::vec3_t::axis_z(camera_adjust);
+      const as::point3 lookat = camera.look_at;
+      const as::point3 offset =
+        lookat + cam_orientation * as::vec3::axis_z(camera_adjust);
 
       static float tesselation = 1.0f;
       static float scale = 14.0f;
@@ -350,11 +350,11 @@ int main(int argc, char** argv)
       const auto triangles =
         mc::march(cell_positions, cell_values, dimension, threshold);
 
-      std::vector<as::index_t> indices;
+      std::vector<as::index> indices;
       indices.resize(triangles.size() * 3);
 
-      as::index_t index = 0;
-      as::index_t unique = 0;
+      as::index index = 0;
+      as::index unique = 0;
       for (const auto& tri : triangles) {
         for (int64_t i = 0; i < 3; ++i) {
           const auto vert = tri.verts_[i];
@@ -384,37 +384,37 @@ int main(int argc, char** argv)
       PosNormalVertex* vertex = (PosNormalVertex*)mc_triangle_tvb.data;
       int16_t* index_data = (int16_t*)tib.data;
 
-      for (as::index_t i = 0; i < filtered_verts.size(); i++) {
+      for (as::index i = 0; i < filtered_verts.size(); i++) {
         vertex[i].normal = analytical_normals
                            ? as::vec_normalize(filtered_norms[i])
-                           : as::vec3_t::zero();
+                           : as::vec3::zero();
         vertex[i].position = filtered_verts[i];
       }
 
-      for (as::index_t indice = 0; indice < indices.size(); indice++) {
+      for (as::index indice = 0; indice < indices.size(); indice++) {
         index_data[indice] = indices[indice];
       }
 
       if (!analytical_normals) {
-        for (as::index_t indice = 0; indice < indices.size(); indice += 3) {
-          const as::vec3_t e1 = filtered_verts[indices[indice]]
+        for (as::index indice = 0; indice < indices.size(); indice += 3) {
+          const as::vec3 e1 = filtered_verts[indices[indice]]
                               - filtered_verts[indices[indice + 1]];
-          const as::vec3_t e2 = filtered_verts[indices[indice + 2]]
+          const as::vec3 e2 = filtered_verts[indices[indice + 2]]
                               - filtered_verts[indices[indice + 1]];
-          const as::vec3_t normal = as::vec3_cross(e1, e2);
+          const as::vec3 normal = as::vec3_cross(e1, e2);
 
           vertex[indices[indice]].normal += normal;
           vertex[indices[indice + 1]].normal += normal;
           vertex[indices[indice + 2]].normal += normal;
         }
 
-        for (as::index_t i = 0; i < filtered_verts.size(); i++) {
+        for (as::index i = 0; i < filtered_verts.size(); i++) {
           vertex[i].normal = as::vec_normalize(vertex[i].normal);
         }
       }
 
       float model[16];
-      as::mat_to_arr(as::mat4_t::identity(), model);
+      as::mat_to_arr(as::mat4::identity(), model);
       bgfx::setTransform(model);
 
       bgfx::setIndexBuffer(&tib, 0, indices.size());
@@ -428,7 +428,7 @@ int main(int argc, char** argv)
           &mc_line_tvb, max_vertices, pos_col_vert_layout);
 
         PosColorVertex* vertex_normals = (PosColorVertex*)mc_line_tvb.data;
-        for (as::index_t i = 0; i < filtered_verts.size(); i++) {
+        for (as::index i = 0; i < filtered_verts.size(); i++) {
           vertex_normals->position = vertex[i].position;
           vertex_normals->abgr = 0xff000000;
           vertex_normals++;
@@ -438,7 +438,7 @@ int main(int argc, char** argv)
         }
 
         float identity[16];
-        as::mat_to_arr(as::mat4_t::identity(), identity);
+        as::mat_to_arr(as::mat4::identity(), identity);
         bgfx::setTransform(identity);
 
         bgfx::setState(BGFX_STATE_DEFAULT | BGFX_STATE_PT_LINES);
@@ -483,7 +483,7 @@ int main(int argc, char** argv)
       float view[16];
       as::mat_to_arr(
         as::mat4_from_mat3_vec3(
-          camera.view().rotation, as::vec3_t::axis_z(10.0f)),
+          camera.view().rotation, as::vec3::axis_z(10.0f)),
         view);
 
       const float extent = 10.0f * aspect;
@@ -494,7 +494,7 @@ int main(int argc, char** argv)
 
       bgfx::setViewTransform(gizmo_view, view, proj);
 
-      as::mat4_t rot = as::mat4_from_mat3(as::mat3_scale(4.0f));
+      as::mat4 rot = as::mat4_from_mat3(as::mat3_scale(4.0f));
 
       float model[16];
       as::mat_to_arr(rot, model);
