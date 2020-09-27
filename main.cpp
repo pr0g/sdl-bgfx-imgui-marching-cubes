@@ -321,7 +321,7 @@ int main(int argc, char** argv)
       float view[16];
       as::mat_to_arr(as::mat4_from_affine(camera.view()), view);
       const as::mat4 persp = as::perspective_d3d_lh(
-        as::deg_to_rad(35.0f), float(width) / float(height), 0.01f, 100.0f);
+        as::radians(35.0f), float(width) / float(height), 0.01f, 100.0f);
 
       float proj[16];
       as::mat_to_arr(persp, proj);
