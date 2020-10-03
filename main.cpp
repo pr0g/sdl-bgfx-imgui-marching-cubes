@@ -199,9 +199,9 @@ int main(int argc, char** argv)
   // size and placement of gizmo on screen
   const float gizmo_offset_percent = 0.85f;
   const float gizmo_size_percent = 0.1f;
-  bgfx::setViewClear(1, BGFX_CLEAR_DEPTH);
+  bgfx::setViewClear(gizmo_view, BGFX_CLEAR_DEPTH);
   bgfx::setViewRect(
-    1, width * gizmo_offset_percent, height * gizmo_offset_percent,
+    gizmo_view, width * gizmo_offset_percent, height * gizmo_offset_percent,
     width * gizmo_size_percent, height * gizmo_size_percent);
 
   ImGui::CreateContext();
@@ -486,11 +486,12 @@ int main(int argc, char** argv)
           camera.view().rotation, as::vec3::axis_z(10.0f)),
         view);
 
-      const float extent = 10.0f * aspect;
+      const float extent_y = 10.0f;
+      const float extent_x = extent_y * aspect;
 
       float proj[16];
       as::mat_to_arr(
-        as::ortho_d3d_lh(-extent, extent, -10.0f, 10.0f, 0.01f, 100.0f), proj);
+        as::ortho_d3d_lh(-extent_x, extent_x, -extent_y, extent_y, 0.01f, 100.0f), proj);
 
       bgfx::setViewTransform(gizmo_view, view, proj);
 
