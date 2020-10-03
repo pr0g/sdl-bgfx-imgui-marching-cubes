@@ -250,7 +250,7 @@ int main(int argc, char** argv)
 
   asc::Camera camera{};
   // initial camera position and orientation
-  auto cam_start = as::point3{0.0f};
+  auto cam_start = as::vec3::zero();
   camera.look_at = cam_start;
 
   // initial mouse state
@@ -336,15 +336,15 @@ int main(int argc, char** argv)
       const as::mat3 cam_orientation = camera.transform().rotation;
       static float camera_adjust = (float(dimension) * 0.5f) + 1.0f;
 
-      const as::point3 lookat = camera.look_at;
-      const as::point3 offset =
+      const as::vec3 lookat = camera.look_at;
+      const as::vec3 offset =
         lookat + cam_orientation * as::vec3::axis_z(camera_adjust);
 
       static float tesselation = 1.0f;
       static float scale = 14.0f;
       static float threshold = 4.0f; // initial
 
-      generatePointData(points, dimension, scale, tesselation, offset.as_vec());
+      generatePointData(points, dimension, scale, tesselation, offset);
       generateCellData(cell_positions, cell_values, points, dimension);
 
       const auto triangles =
