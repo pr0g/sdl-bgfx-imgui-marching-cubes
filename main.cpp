@@ -513,6 +513,7 @@ int main(int argc, char** argv)
     unique_verts.clear();
 
     ImGui::Render();
+    ImGui_Implbgfx_RenderDrawLists(ImGui::GetDrawData());
 
     bgfx::frame();
   }
