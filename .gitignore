@@ -3,3 +3,4 @@ install/
 imgui.ini
 *.bin
 .vscode/
+vc140.pdb
