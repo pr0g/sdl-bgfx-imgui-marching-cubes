@@ -467,7 +467,7 @@ int main(int argc, char** argv)
 
       float light_dir_arr[3];
       as::vec_to_arr(light_dir, light_dir_arr);
-      ImGui::InputFloat3("Light Dir", light_dir_arr, 3);
+      ImGui::InputFloat3("Light Dir", light_dir_arr);
       light_dir = as::vec_from_arr(light_dir_arr);
 
       ImGui::SliderFloat("Threshold", &threshold, 0.0f, 10.0f);
