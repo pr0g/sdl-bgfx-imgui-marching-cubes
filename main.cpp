@@ -142,7 +142,7 @@ struct Vec3EqualFn
 {
   bool operator()(const as::vec3& lhs, const as::vec3& rhs) const
   {
-    return as::vec_equal(lhs, rhs);
+    return as::vec_near(lhs, rhs);
   }
 };
 
