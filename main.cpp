@@ -1,7 +1,6 @@
 #include "SDL.h"
 #include "SDL_syswm.h"
-#include "as-camera-sdl/as-camera-sdl.h"
-#include "as-camera/as-camera-controller.hpp"
+#include "as-camera-input/as-camera-input.hpp"
 #include "as/as-math-ops.hpp"
 #include "as/as-view.hpp"
 #include "bgfx-imgui/imgui_impl_bgfx.h"
@@ -20,6 +19,82 @@
 #include <tuple>
 #include <unordered_map>
 #include <vector>
+
+asci::MouseButton mouseFromSdl(const SDL_MouseButtonEvent* event)
+{
+  switch (event->button) {
+    case SDL_BUTTON_LEFT:
+      return asci::MouseButton::Left;
+    case SDL_BUTTON_RIGHT:
+      return asci::MouseButton::Right;
+    case SDL_BUTTON_MIDDLE:
+      return asci::MouseButton::Middle;
+    default:
+      return asci::MouseButton::None;
+  }
+}
+
+asci::KeyboardButton keyboardFromSdl(const int key)
+{
+  switch (key) {
+    case SDL_SCANCODE_W:
+      return asci::KeyboardButton::W;
+    case SDL_SCANCODE_S:
+      return asci::KeyboardButton::S;
+    case SDL_SCANCODE_A:
+      return asci::KeyboardButton::A;
+    case SDL_SCANCODE_D:
+      return asci::KeyboardButton::D;
+    case SDL_SCANCODE_Q:
+      return asci::KeyboardButton::Q;
+    case SDL_SCANCODE_E:
+      return asci::KeyboardButton::E;
+    case SDL_SCANCODE_LALT:
+      return asci::KeyboardButton::LAlt;
+    case SDL_SCANCODE_LSHIFT:
+      return asci::KeyboardButton::LShift;
+    case SDL_SCANCODE_LCTRL:
+      return asci::KeyboardButton::Ctrl;
+    default:
+      return asci::KeyboardButton::None;
+  }
+}
+
+asci::InputEvent sdlToInput(const SDL_Event* event)
+{
+  switch (event->type) {
+    case SDL_MOUSEMOTION: {
+      const auto* mouse_motion_event = (SDL_MouseMotionEvent*)event;
+      return asci::MouseMotionEvent{{mouse_motion_event->x, mouse_motion_event->y}};
+    }
+    case SDL_MOUSEWHEEL: {
+      const auto* mouse_wheel_event = (SDL_MouseWheelEvent*)event;
+      return asci::MouseWheelEvent{mouse_wheel_event->y};
+    }
+    case SDL_MOUSEBUTTONDOWN: {
+      const auto* mouse_event = (SDL_MouseButtonEvent*)event;
+      return asci::MouseButtonEvent{mouseFromSdl(mouse_event), asci::ButtonAction::Down};
+    }
+    case SDL_MOUSEBUTTONUP: {
+      const auto* mouse_event = (SDL_MouseButtonEvent*)event;
+      return asci::MouseButtonEvent{mouseFromSdl(mouse_event), asci::ButtonAction::Up};
+    }
+    case SDL_KEYDOWN: {
+      const auto* keyboard_event = (SDL_KeyboardEvent*)event;
+      return asci::KeyboardButtonEvent{
+        keyboardFromSdl(keyboard_event->keysym.scancode), asci::ButtonAction::Down,
+        event->key.repeat != 0u};
+    }
+    case SDL_KEYUP: {
+      const auto* keyboard_event = (SDL_KeyboardEvent*)event;
+      return asci::KeyboardButtonEvent{
+        keyboardFromSdl(keyboard_event->keysym.scancode), asci::ButtonAction::Up,
+        event->key.repeat != 0u};
+    }
+    default:
+      return std::monostate{};
+  }
+}
 
 struct PosColorVertex
 {
@@ -250,22 +325,22 @@ int main(int argc, char** argv)
 
   asc::Camera camera{};
   // initial camera position and orientation
-  auto cam_start = as::vec3::zero();
-  camera.look_at = cam_start;
+  camera.look_at = as::vec3::zero();
+  asc::Camera target_camera = camera;
 
-  // initial mouse state
-  MouseState mouse_state = mouseState();
+  auto first_person_rotate_camera = asci::RotateCameraInput{asci::MouseButton::Right};
+  auto first_person_pan_camera = asci::PanCameraInput{asci::lookPan};
+  auto first_person_translate_camera = asci::TranslateCameraInput{asci::lookTranslation};
+  auto first_person_wheel_camera = asci::WheelTranslationCameraInput{};
 
-  // camera control structure
-  asc::CameraControl camera_control{};
-  camera_control.pitch = camera.pitch;
-  camera_control.yaw = camera.yaw;
+  asci::Cameras cameras;
+  cameras.idle_camera_inputs_.push_back(&first_person_rotate_camera);
+  cameras.idle_camera_inputs_.push_back(&first_person_pan_camera);
+  cameras.idle_camera_inputs_.push_back(&first_person_translate_camera);
+  cameras.idle_camera_inputs_.push_back(&first_person_wheel_camera);
 
-  // camera properties
-  asc::CameraProperties camera_props{};
-  camera_props.rotate_speed = 0.005f;
-  camera_props.translate_speed = 10.0f;
-  camera_props.look_smoothness = 5.0f;
+  asci::CameraSystem camera_system;
+  camera_system.cameras_ = cameras;
 
   auto prev = bx::getHPCounter();
 
@@ -284,8 +359,7 @@ int main(int argc, char** argv)
   for (bool quit = false; !quit;) {
     SDL_Event current_event;
     while (SDL_PollEvent(&current_event) != 0) {
-      updateCameraControlKeyboardSdl(
-        current_event, camera_control, camera_props);
+      camera_system.handleEvents(sdlToInput(&current_event));
       ImGui_ImplSDL2_ProcessEvent(&current_event);
       if (current_event.type == SDL_QUIT) {
         quit = true;
@@ -304,17 +378,15 @@ int main(int argc, char** argv)
                                             / (double(time_window) / freq)
                                         : 0.0;
 
-    updateCameraControlMouseSdl(camera_control, camera_props, mouse_state);
-
     // frame dt
     auto now = bx::getHPCounter();
     auto delta = now - prev;
     prev = now;
 
-    float dt = delta / freq;
+    float delta_time = delta / static_cast<float>(freq);
 
-    asc::updateCamera(
-      camera, camera_control, camera_props, dt, asc::Handedness::Left);
+    target_camera = camera_system.stepCamera(target_camera, delta_time);
+    camera = asci::smoothCamera(camera, target_camera, delta_time);
 
     // marching cube scene
     {
