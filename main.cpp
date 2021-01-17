@@ -65,7 +65,8 @@ asci::InputEvent sdlToInput(const SDL_Event* event)
   switch (event->type) {
     case SDL_MOUSEMOTION: {
       const auto* mouse_motion_event = (SDL_MouseMotionEvent*)event;
-      return asci::MouseMotionEvent{{mouse_motion_event->x, mouse_motion_event->y}};
+      return asci::MouseMotionEvent{
+        {mouse_motion_event->x, mouse_motion_event->y}};
     }
     case SDL_MOUSEWHEEL: {
       const auto* mouse_wheel_event = (SDL_MouseWheelEvent*)event;
@@ -73,23 +74,25 @@ asci::InputEvent sdlToInput(const SDL_Event* event)
     }
     case SDL_MOUSEBUTTONDOWN: {
       const auto* mouse_event = (SDL_MouseButtonEvent*)event;
-      return asci::MouseButtonEvent{mouseFromSdl(mouse_event), asci::ButtonAction::Down};
+      return asci::MouseButtonEvent{
+        mouseFromSdl(mouse_event), asci::ButtonAction::Down};
     }
     case SDL_MOUSEBUTTONUP: {
       const auto* mouse_event = (SDL_MouseButtonEvent*)event;
-      return asci::MouseButtonEvent{mouseFromSdl(mouse_event), asci::ButtonAction::Up};
+      return asci::MouseButtonEvent{
+        mouseFromSdl(mouse_event), asci::ButtonAction::Up};
     }
     case SDL_KEYDOWN: {
       const auto* keyboard_event = (SDL_KeyboardEvent*)event;
       return asci::KeyboardButtonEvent{
-        keyboardFromSdl(keyboard_event->keysym.scancode), asci::ButtonAction::Down,
-        event->key.repeat != 0u};
+        keyboardFromSdl(keyboard_event->keysym.scancode),
+        asci::ButtonAction::Down, event->key.repeat != 0u};
     }
     case SDL_KEYUP: {
       const auto* keyboard_event = (SDL_KeyboardEvent*)event;
       return asci::KeyboardButtonEvent{
-        keyboardFromSdl(keyboard_event->keysym.scancode), asci::ButtonAction::Up,
-        event->key.repeat != 0u};
+        keyboardFromSdl(keyboard_event->keysym.scancode),
+        asci::ButtonAction::Up, event->key.repeat != 0u};
     }
     default:
       return std::monostate{};
@@ -328,9 +331,11 @@ int main(int argc, char** argv)
   camera.look_at = as::vec3::zero();
   asc::Camera target_camera = camera;
 
-  auto first_person_rotate_camera = asci::RotateCameraInput{asci::MouseButton::Right};
+  auto first_person_rotate_camera =
+    asci::RotateCameraInput{asci::MouseButton::Right};
   auto first_person_pan_camera = asci::PanCameraInput{asci::lookPan};
-  auto first_person_translate_camera = asci::TranslateCameraInput{asci::lookTranslation};
+  auto first_person_translate_camera =
+    asci::TranslateCameraInput{asci::lookTranslation};
   auto first_person_wheel_camera = asci::WheelTranslationCameraInput{};
 
   asci::Cameras cameras;
@@ -351,8 +356,7 @@ int main(int argc, char** argv)
 
   std::vector<as::vec3> filtered_verts;
   std::vector<as::vec3> filtered_norms;
-  std::unordered_map<
-    as::vec3, as::index, std::hash<as::vec3>, Vec3EqualFn>
+  std::unordered_map<as::vec3, as::index, std::hash<as::vec3>, Vec3EqualFn>
     unique_verts;
 
   Fps fps;
@@ -470,9 +474,9 @@ int main(int argc, char** argv)
       if (!analytical_normals) {
         for (as::index indice = 0; indice < indices.size(); indice += 3) {
           const as::vec3 e1 = filtered_verts[indices[indice]]
-                              - filtered_verts[indices[indice + 1]];
+                            - filtered_verts[indices[indice + 1]];
           const as::vec3 e2 = filtered_verts[indices[indice + 2]]
-                              - filtered_verts[indices[indice + 1]];
+                            - filtered_verts[indices[indice + 1]];
           const as::vec3 normal = as::vec3_cross(e1, e2);
 
           vertex[indices[indice]].normal += normal;
@@ -563,7 +567,9 @@ int main(int argc, char** argv)
 
       float proj[16];
       as::mat_to_arr(
-        as::ortho_d3d_lh(-extent_x, extent_x, -extent_y, extent_y, 0.01f, 100.0f), proj);
+        as::ortho_d3d_lh(
+          -extent_x, extent_x, -extent_y, extent_y, 0.01f, 100.0f),
+        proj);
 
       bgfx::setViewTransform(gizmo_view, view, proj);
 

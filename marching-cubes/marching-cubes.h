@@ -29,8 +29,8 @@ struct Triangle
 {
   Triangle() = default;
   Triangle(
-    const as::vec3& a, const as::vec3& b, const as::vec3& c,
-    const as::vec3& an, const as::vec3& bn, const as::vec3& cn)
+    const as::vec3& a, const as::vec3& b, const as::vec3& c, const as::vec3& an,
+    const as::vec3& bn, const as::vec3& cn)
     : verts_{a, b, c}, norms_{an, bn, cn}
   {
   }

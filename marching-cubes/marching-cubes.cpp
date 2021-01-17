@@ -162,8 +162,7 @@ void generatePointData(
         const as::vec3 offset{(1.0f - tesselation) * dimension * 0.5f};
 
         const as::vec3 pos =
-          (as::vec3{as::real(x), as::real(y), as::real(z)}
-           * tesselation)
+          (as::vec3{as::real(x), as::real(y), as::real(z)} * tesselation)
           + offset;
 
         const as::vec4 noise = noised((pos + round_cam) / scale);
