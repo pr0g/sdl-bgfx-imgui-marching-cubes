@@ -386,7 +386,8 @@ int main(int argc, char** argv)
     float delta_time = delta / static_cast<float>(freq);
 
     target_camera = camera_system.stepCamera(target_camera, delta_time);
-    camera = asci::smoothCamera(camera, target_camera, delta_time);
+    camera = asci::smoothCamera(
+      camera, target_camera, asci::SmoothProps{}, delta_time);
 
     // marching cube scene
     {
