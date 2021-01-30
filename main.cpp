@@ -12,6 +12,8 @@
 #include "hsv-rgb.h"
 #include "imgui.h"
 #include "marching-cubes/marching-cubes.h"
+#include "thh-bgfx-debug/debug-line.hpp"
+#include "thh-bgfx-debug/debug-shader.hpp"
 #include "sdl-imgui/imgui_impl_sdl.h"
 
 #include <algorithm>
@@ -263,6 +265,8 @@ int main(int argc, char** argv)
   bgfx_init.platformData = pd;
   bgfx::init(bgfx_init);
 
+  dbg::DebugVertex::init();
+
   const bgfx::ViewId main_view = 0;
   const bgfx::ViewId gizmo_view = 1;
 
@@ -288,6 +292,9 @@ int main(int argc, char** argv)
 #elif BX_PLATFORM_OSX
   ImGui_ImplSDL2_InitForMetal(window);
 #endif // BX_PLATFORM_WINDOWS ? BX_PLATFORM_OSX
+
+  dbg::EmbeddedShaderProgram simple_program;
+  simple_program.init(dbg::SimpleEmbeddedShaderArgs);
 
   bgfx::VertexLayout pos_col_vert_layout;
   pos_col_vert_layout.begin()
@@ -496,29 +503,13 @@ int main(int argc, char** argv)
       bgfx::submit(main_view, program_norm);
 
       if (draw_normals) {
-        bgfx::TransientVertexBuffer mc_line_tvb;
-        bgfx::allocTransientVertexBuffer(
-          &mc_line_tvb, max_vertices, pos_col_vert_layout);
-
-        PosColorVertex* vertex_normals = (PosColorVertex*)mc_line_tvb.data;
+        auto debug_lines = dbg::DebugLines(main_view, simple_program.handle());
         for (as::index i = 0; i < filtered_verts.size(); i++) {
-          vertex_normals->position = vertex[i].position;
-          vertex_normals->abgr = 0xff000000;
-          vertex_normals++;
-          vertex_normals->position = vertex[i].position + vertex[i].normal;
-          vertex_normals->abgr = 0xff000000;
-          vertex_normals++;
+          debug_lines.addLine(
+            vertex[i].position, vertex[i].position + vertex[i].normal,
+            0xff000000);
         }
-
-        float identity[16];
-        as::mat_to_arr(as::mat4::identity(), identity);
-        bgfx::setTransform(identity);
-
-        bgfx::setState(BGFX_STATE_DEFAULT | BGFX_STATE_PT_LINES);
-
-        bgfx::setVertexBuffer(0, &mc_line_tvb, 0, filtered_verts.size() * 2);
-
-        bgfx::submit(main_view, program_col);
+        debug_lines.submit();
       }
 
       bgfx::setState(BGFX_STATE_DEFAULT);

@@ -11,7 +11,11 @@ FetchContent_Declare(
     as-camera-input
     GIT_REPOSITORY https://github.com/pr0g/as-camera-input.git
     GIT_TAG        origin/main)
-FetchContent_MakeAvailable(as-camera-input)
+FetchContent_Declare(
+    thh-bgfx-debug
+    GIT_REPOSITORY https://github.com/pr0g/thh-bgfx-debug
+    GIT_TAG        origin/main)
+FetchContent_MakeAvailable(as-camera-input thh-bgfx-debug)
 
 add_executable(${PROJECT_NAME})
 target_sources(
@@ -27,7 +31,8 @@ target_link_libraries(
     SDL2::SDL2main
     bgfx::bgfx
     imgui::imgui
-    as-camera-input)
+    as-camera-input
+    thh-bgfx-debug)
 
 # required by as and as-camera-input library
 target_compile_definitions(${PROJECT_NAME}
