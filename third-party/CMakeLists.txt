@@ -31,6 +31,7 @@ ExternalProject_Add(
     INSTALL_DIR ${CMAKE_CURRENT_BINARY_DIR}
     CMAKE_ARGS ${build_type_arg}
                -D CMAKE_INSTALL_PREFIX=<INSTALL_DIR>
+               -D CMAKE_DEBUG_POSTFIX=d
                -D BGFX_BUILD_EXAMPLES=OFF)
 
 ExternalProject_Add(
@@ -42,4 +43,5 @@ ExternalProject_Add(
     BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/imgui/build/${build_type_dir}
     INSTALL_DIR ${CMAKE_CURRENT_BINARY_DIR}
     CMAKE_ARGS ${build_type_arg}
-               -D CMAKE_INSTALL_PREFIX=<INSTALL_DIR>)
+               -D CMAKE_INSTALL_PREFIX=<INSTALL_DIR>
+               -D IMGUI_DISABLE_OBSOLETE_FUNCTIONS=ON)
