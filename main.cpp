@@ -12,6 +12,8 @@
 #include "hsv-rgb.h"
 #include "imgui.h"
 #include "marching-cubes/marching-cubes.h"
+#include "thh-bgfx-debug/debug-line.hpp"
+#include "thh-bgfx-debug/debug-shader.hpp"
 #include "sdl-imgui/imgui_impl_sdl.h"
 
 #include <algorithm>
@@ -30,7 +32,7 @@ asci::MouseButton mouseFromSdl(const SDL_MouseButtonEvent* event)
     case SDL_BUTTON_MIDDLE:
       return asci::MouseButton::Middle;
     default:
-      return asci::MouseButton::None;
+      return asci::MouseButton::Nil;
   }
 }
 
@@ -56,7 +58,7 @@ asci::KeyboardButton keyboardFromSdl(const int key)
     case SDL_SCANCODE_LCTRL:
       return asci::KeyboardButton::Ctrl;
     default:
-      return asci::KeyboardButton::None;
+      return asci::KeyboardButton::Nil;
   }
 }
 
@@ -256,7 +258,10 @@ int main(int argc, char** argv)
   pd.nwh = wmi.info.win.window;
 #elif BX_PLATFORM_OSX
   pd.nwh = wmi.info.cocoa.window;
-#endif // BX_PLATFORM_WINDOWS ? BX_PLATFORM_OSX
+#elif BX_PLATFORM_LINUX
+  pd.ndt = wmi.info.x11.display;
+  pd.nwh = (void*)(uintptr_t)wmi.info.x11.window;
+#endif // BX_PLATFORM_WINDOWS ? BX_PLATFORM_OSX ? BX_PLATFORM_LINUX
 
   bgfx::Init bgfx_init;
   bgfx_init.type = bgfx::RendererType::Count; // auto choose renderer
@@ -265,6 +270,8 @@ int main(int argc, char** argv)
   bgfx_init.resolution.reset = BGFX_RESET_VSYNC;
   bgfx_init.platformData = pd;
   bgfx::init(bgfx_init);
+
+  dbg::DebugVertex::init();
 
   const bgfx::ViewId main_view = 0;
   const bgfx::ViewId gizmo_view = 1;
@@ -290,7 +297,12 @@ int main(int argc, char** argv)
   ImGui_ImplSDL2_InitForD3D(window);
 #elif BX_PLATFORM_OSX
   ImGui_ImplSDL2_InitForMetal(window);
-#endif // BX_PLATFORM_WINDOWS ? BX_PLATFORM_OSX
+#elif BX_PLATFORM_LINUX
+  ImGui_ImplSDL2_InitForOpenGL(window, nullptr);
+#endif // BX_PLATFORM_WINDOWS ? BX_PLATFORM_OSX ? BX_PLATFORM_LINUX
+
+  dbg::EmbeddedShaderProgram simple_program;
+  simple_program.init(dbg::SimpleEmbeddedShaderArgs);
 
   bgfx::VertexLayout pos_col_vert_layout;
   pos_col_vert_layout.begin()
@@ -339,10 +351,10 @@ int main(int argc, char** argv)
   auto first_person_wheel_camera = asci::WheelTranslationCameraInput{};
 
   asci::Cameras cameras;
-  cameras.idle_camera_inputs_.push_back(&first_person_rotate_camera);
-  cameras.idle_camera_inputs_.push_back(&first_person_pan_camera);
-  cameras.idle_camera_inputs_.push_back(&first_person_translate_camera);
-  cameras.idle_camera_inputs_.push_back(&first_person_wheel_camera);
+  cameras.addCamera(&first_person_rotate_camera);
+  cameras.addCamera(&first_person_pan_camera);
+  cameras.addCamera(&first_person_translate_camera);
+  cameras.addCamera(&first_person_wheel_camera);
 
   asci::CameraSystem camera_system;
   camera_system.cameras_ = cameras;
@@ -390,7 +402,8 @@ int main(int argc, char** argv)
     float delta_time = delta / static_cast<float>(freq);
 
     target_camera = camera_system.stepCamera(target_camera, delta_time);
-    camera = asci::smoothCamera(camera, target_camera, delta_time);
+    camera = asci::smoothCamera(
+      camera, target_camera, asci::SmoothProps{}, delta_time);
 
     // marching cube scene
     {
@@ -499,29 +512,13 @@ int main(int argc, char** argv)
       bgfx::submit(main_view, program_norm);
 
       if (draw_normals) {
-        bgfx::TransientVertexBuffer mc_line_tvb;
-        bgfx::allocTransientVertexBuffer(
-          &mc_line_tvb, max_vertices, pos_col_vert_layout);
-
-        PosColorVertex* vertex_normals = (PosColorVertex*)mc_line_tvb.data;
+        auto debug_lines = dbg::DebugLines(main_view, simple_program.handle());
         for (as::index i = 0; i < filtered_verts.size(); i++) {
-          vertex_normals->position = vertex[i].position;
-          vertex_normals->abgr = 0xff000000;
-          vertex_normals++;
-          vertex_normals->position = vertex[i].position + vertex[i].normal;
-          vertex_normals->abgr = 0xff000000;
-          vertex_normals++;
+          debug_lines.addLine(
+            vertex[i].position, vertex[i].position + vertex[i].normal,
+            0xff000000);
         }
-
-        float identity[16];
-        as::mat_to_arr(as::mat4::identity(), identity);
-        bgfx::setTransform(identity);
-
-        bgfx::setState(BGFX_STATE_DEFAULT | BGFX_STATE_PT_LINES);
-
-        bgfx::setVertexBuffer(0, &mc_line_tvb, 0, filtered_verts.size() * 2);
-
-        bgfx::submit(main_view, program_col);
+        debug_lines.submit();
       }
 
       bgfx::setState(BGFX_STATE_DEFAULT);
