@@ -22,6 +22,14 @@
 #include <unordered_map>
 #include <vector>
 
+namespace asc
+{
+  Handedness handedness()
+  {
+    return Handedness::Left;
+  }
+}
+
 asci::MouseButton mouseFromSdl(const SDL_MouseButtonEvent* event)
 {
   switch (event->button) {
