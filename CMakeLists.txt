@@ -10,11 +10,11 @@ include(FetchContent)
 FetchContent_Declare(
     as-camera-input
     GIT_REPOSITORY https://github.com/pr0g/as-camera-input.git
-    GIT_TAG        origin/main)
+    GIT_TAG        777d7895874115bb81933f8e117414bf8efc9d29)
 FetchContent_Declare(
     thh-bgfx-debug
     GIT_REPOSITORY https://github.com/pr0g/thh-bgfx-debug
-    GIT_TAG        origin/main)
+    GIT_TAG        b0eb4ddeb9cfe19ee18986444eb437c08fb323fe)
 FetchContent_MakeAvailable(as-camera-input thh-bgfx-debug)
 
 add_executable(${PROJECT_NAME})
