@@ -107,13 +107,16 @@ static as::vec3 interpolate(
   return v;
 }
 
-Point*** createPointVolume(const int dimension)
+Point*** createPointVolume(const int dimension, const float initial_value)
 {
   Point*** points = new Point**[dimension];
   for (int z = 0; z < dimension; ++z) {
     points[z] = new Point*[dimension];
     for (int y = 0; y < dimension; ++y) {
       points[z][y] = new Point[dimension];
+      for (int x = 0; x < dimension; ++x) {
+        points[z][y][x].val_ = initial_value;
+      }
     }
   }
 
@@ -157,7 +160,7 @@ void generatePointData(
   for (int z = 0; z < dimension; ++z) {
     for (int y = 0; y < dimension; ++y) {
       for (int x = 0; x < dimension; ++x) {
-        const as::vec3 round_cam = as::vec_snap(cam, tesselation);
+        const as::vec3 snap_cam = as::vec_snap(cam, tesselation);
 
         const as::vec3 offset{(1.0f - tesselation) * dimension * 0.5f};
 
@@ -165,7 +168,7 @@ void generatePointData(
           (as::vec3{as::real(x), as::real(y), as::real(z)} * tesselation)
           + offset;
 
-        const as::vec4 noise = noised((pos + round_cam) / scale);
+        const as::vec4 noise = noised((pos + snap_cam) / scale);
 
         as::real v = ((noise.x + 1.0f) * 0.5f) * g_threshold_scale;
 
@@ -173,7 +176,31 @@ void generatePointData(
         points[z][y][x].normal_ = as::vec3{noise.y, noise.z, noise.w};
 
         points[z][y][x].position_ =
-          pos - (as::vec3{as::real(dimension)} * 0.5f) + round_cam;
+          pos - (as::vec3{as::real(dimension)} * 0.5f) + snap_cam;
+      }
+    }
+  }
+}
+
+void generatePointData(
+  Point*** points, int dimension, float tesselation, const as::vec3& center,
+  const as::vec3& camera, const as::vec3& dir, float distance)
+{
+  for (int z = 0; z < dimension; ++z) {
+    for (int y = 0; y < dimension; ++y) {
+      for (int x = 0; x < dimension; ++x) {
+        const as::vec3 snap_cam = as::vec_snap(center, tesselation);
+        const as::vec3 offset{(1.0f - tesselation) * dimension * 0.5f};
+        const as::vec3 pos =
+          (as::vec3{as::real(x), as::real(y), as::real(z)} * tesselation)
+          - (as::vec3{as::real(dimension)} * 0.5f) + offset + snap_cam;
+
+        const auto feeler = camera + dir * distance;
+
+        const auto dist = as::vec_distance(pos, feeler);
+        points[z][y][x].position_ = pos;
+        points[z][y][x].val_ = dist;
+        points[z][y][x].normal_ = as::vec_normalize(pos - feeler);
       }
     }
   }

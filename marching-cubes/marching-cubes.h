@@ -39,13 +39,18 @@ struct Triangle
   as::vec3 norms_[3];
 };
 
-Point*** createPointVolume(int dimension);
+Point*** createPointVolume(int dimension, float initial_values);
 CellValues*** createCellValues(int dimension);
 CellPositions*** createCellPositions(int dimension);
 
 void generatePointData(
   Point*** points, int dimension, float scale, float tesselation,
   const as::vec3& cam);
+
+void generatePointData(
+  Point*** points, int dimension, float tesselation, const as::vec3& center,
+  const as::vec3& cam, const as::vec3& dir, float distance);
+
 void generateCellData(
   CellPositions*** cellPositions, CellValues*** cellValues, Point*** points,
   int dimension);

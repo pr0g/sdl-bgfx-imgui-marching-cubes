@@ -12,15 +12,25 @@
 #include "hsv-rgb.h"
 #include "imgui.h"
 #include "marching-cubes/marching-cubes.h"
+#include "sdl-imgui/imgui_impl_sdl.h"
 #include "thh-bgfx-debug/debug-line.hpp"
 #include "thh-bgfx-debug/debug-shader.hpp"
-#include "sdl-imgui/imgui_impl_sdl.h"
 
 #include <algorithm>
 #include <optional>
 #include <tuple>
 #include <unordered_map>
 #include <vector>
+
+namespace asc
+{
+
+Handedness handedness()
+{
+  return Handedness::Left;
+}
+
+} // namespace asc
 
 asci::MouseButton mouseFromSdl(const SDL_MouseButtonEvent* event)
 {
@@ -67,12 +77,12 @@ asci::InputEvent sdlToInput(const SDL_Event* event)
   switch (event->type) {
     case SDL_MOUSEMOTION: {
       const auto* mouse_motion_event = (SDL_MouseMotionEvent*)event;
-      return asci::MouseMotionEvent{
+      return asci::CursorMotionEvent{
         {mouse_motion_event->x, mouse_motion_event->y}};
     }
     case SDL_MOUSEWHEEL: {
       const auto* mouse_wheel_event = (SDL_MouseWheelEvent*)event;
-      return asci::MouseWheelEvent{mouse_wheel_event->y};
+      return asci::ScrollEvent{mouse_wheel_event->y};
     }
     case SDL_MOUSEBUTTONDOWN: {
       const auto* mouse_event = (SDL_MouseButtonEvent*)event;
@@ -226,6 +236,41 @@ struct Vec3EqualFn
   }
 };
 
+as::quat getRotationBetween(const as::vec3& u, const as::vec3& v)
+{
+  float k_cos_theta = as::vec_dot(u, v);
+  float k = std::sqrt(as::vec_length_sq(u) * as::vec_length_sq(v));
+
+  if (k_cos_theta / k == -1) {
+    // 180 degree rotation around any orthogonal vector
+    return as::quat(0.0f, as::vec_normalize(as::vec3_orthogonal(u)));
+  }
+
+  return as::quat_normalize(as::quat(k_cos_theta + k, as::vec3_cross(u, v)));
+}
+
+as::mat3 rotateAlign(const as::vec3& u1, const as::vec3& u2)
+{
+  if (as::vec_near(u1, -u2)) {
+    return as::mat3_rotation_axis(
+      as::mat3_basis_y(as::orthonormal_basis(u1)), as::radians(180.0f));
+  }
+
+  const as::vec3 axis = as::vec3_cross(u1, u2);
+
+  const float cos_a = as::vec_dot(u1, u2);
+  const float k = 1.0f / (1.0f + cos_a);
+
+  as::mat3 result(
+    (axis.x * axis.x * k) + cos_a, (axis.y * axis.x * k) - axis.z,
+    (axis.z * axis.x * k) + axis.y, (axis.x * axis.y * k) + axis.z,
+    (axis.y * axis.y * k) + cos_a, (axis.z * axis.y * k) - axis.x,
+    (axis.x * axis.z * k) - axis.y, (axis.y * axis.z * k) + axis.x,
+    (axis.z * axis.z * k) + cos_a);
+
+  return result;
+}
+
 int main(int argc, char** argv)
 {
   if (SDL_Init(SDL_INIT_VIDEO) < 0) {
@@ -348,7 +393,7 @@ int main(int argc, char** argv)
   auto first_person_pan_camera = asci::PanCameraInput{asci::lookPan};
   auto first_person_translate_camera =
     asci::TranslateCameraInput{asci::lookTranslation};
-  auto first_person_wheel_camera = asci::WheelTranslationCameraInput{};
+  auto first_person_wheel_camera = asci::ScrollTranslationCameraInput{};
 
   asci::Cameras cameras;
   cameras.addCamera(&first_person_rotate_camera);
@@ -362,7 +407,7 @@ int main(int argc, char** argv)
   auto prev = bx::getHPCounter();
 
   const int dimension = 25;
-  auto points = mc::createPointVolume(dimension);
+  auto points = mc::createPointVolume(dimension, 10000.0f);
   auto cell_values = mc::createCellValues(dimension);
   auto cell_positions = mc::createCellPositions(dimension);
 
@@ -370,6 +415,15 @@ int main(int argc, char** argv)
   std::vector<as::vec3> filtered_norms;
   std::unordered_map<as::vec3, as::index, std::hash<as::vec3>, Vec3EqualFn>
     unique_verts;
+
+  enum class Scene
+  {
+    Noise,
+    Sphere
+  };
+
+  Scene scene = Scene::Sphere;
+  int* scene_alias = (int*)&scene;
 
   Fps fps;
   for (bool quit = false; !quit;) {
@@ -399,8 +453,7 @@ int main(int argc, char** argv)
     auto delta = now - prev;
     prev = now;
 
-    float delta_time = delta / static_cast<float>(freq);
-
+    const float delta_time = delta / static_cast<float>(freq);
     target_camera = camera_system.stepCamera(target_camera, delta_time);
     camera = asci::smoothCamera(
       camera, target_camera, asci::SmoothProps{}, delta_time);
@@ -409,11 +462,11 @@ int main(int argc, char** argv)
     {
       float view[16];
       as::mat_to_arr(as::mat4_from_affine(camera.view()), view);
-      const as::mat4 persp = as::perspective_d3d_lh(
+      const as::mat4 perspective_projection = as::perspective_d3d_lh(
         as::radians(35.0f), float(width) / float(height), 0.01f, 100.0f);
 
       float proj[16];
-      as::mat_to_arr(persp, proj);
+      as::mat_to_arr(perspective_projection, proj);
 
       bgfx::setViewTransform(main_view, view, proj);
 
@@ -423,17 +476,42 @@ int main(int argc, char** argv)
       static bool draw_normals = false;
 
       const as::mat3 cam_orientation = camera.transform().rotation;
-      static float camera_adjust = (float(dimension) * 0.5f) + 1.0f;
+      static float camera_adjust_noise = (float(dimension) * 0.5f) + 1.0f;
+      static float camera_adjust_sphere = 50.0f;
 
       const as::vec3 lookat = camera.look_at;
-      const as::vec3 offset =
-        lookat + cam_orientation * as::vec3::axis_z(camera_adjust);
 
       static float tesselation = 1.0f;
       static float scale = 14.0f;
       static float threshold = 4.0f; // initial
 
-      generatePointData(points, dimension, scale, tesselation, offset);
+      switch (scene) {
+        case Scene::Noise: {
+          const as::vec3 offset =
+            lookat + cam_orientation * as::vec3::axis_z(camera_adjust_noise);
+          generatePointData(points, dimension, scale, tesselation, offset);
+        } break;
+          break;
+        case Scene::Sphere: {
+          int x;
+          int y;
+          SDL_GetMouseState(&x, &y);
+          const auto screen_dimension = as::vec2i(width, height);
+          const auto orientation = as::affine_inverse(camera.view()).rotation;
+          const auto world_position = as::screen_to_world(
+            as::vec2i(x, y), perspective_projection, camera.view(),
+            screen_dimension);
+          const auto ray_origin = camera.look_at;
+          const auto ray_direction =
+            as::vec_normalize(world_position - ray_origin);
+          const as::vec3 offset =
+            lookat + cam_orientation * as::vec3::axis_z(camera_adjust_sphere);
+          generatePointData(
+            points, dimension, tesselation, offset, ray_origin, ray_direction,
+            50.0f);
+        } break;
+      }
+
       generateCellData(cell_positions, cell_values, points, dimension);
 
       const auto triangles =
@@ -463,68 +541,80 @@ int main(int argc, char** argv)
       }
 
       uint32_t max_vertices = 32 << 10;
-      bgfx::TransientVertexBuffer mc_triangle_tvb;
-      bgfx::allocTransientVertexBuffer(
-        &mc_triangle_tvb, max_vertices, pos_norm_vert_layout);
+      const auto available_vertex_count =
+        bgfx::getAvailTransientVertexBuffer(max_vertices, pos_norm_vert_layout);
 
-      bgfx::TransientIndexBuffer tib;
-      bgfx::allocTransientIndexBuffer(&tib, max_vertices);
+      const auto available_index_count =
+        bgfx::getAvailTransientIndexBuffer(max_vertices);
 
-      PosNormalVertex* vertex = (PosNormalVertex*)mc_triangle_tvb.data;
-      int16_t* index_data = (int16_t*)tib.data;
+      if (
+        available_vertex_count == max_vertices
+        && available_index_count == max_vertices) {
 
-      for (as::index i = 0; i < filtered_verts.size(); i++) {
-        vertex[i].normal = analytical_normals
-                           ? as::vec_normalize(filtered_norms[i])
-                           : as::vec3::zero();
-        vertex[i].position = filtered_verts[i];
-      }
+        bgfx::TransientVertexBuffer mc_triangle_tvb;
+        bgfx::allocTransientVertexBuffer(
+          &mc_triangle_tvb, max_vertices, pos_norm_vert_layout);
 
-      for (as::index indice = 0; indice < indices.size(); indice++) {
-        index_data[indice] = indices[indice];
-      }
+        bgfx::TransientIndexBuffer tib;
+        bgfx::allocTransientIndexBuffer(&tib, max_vertices);
 
-      if (!analytical_normals) {
-        for (as::index indice = 0; indice < indices.size(); indice += 3) {
-          const as::vec3 e1 = filtered_verts[indices[indice]]
-                            - filtered_verts[indices[indice + 1]];
-          const as::vec3 e2 = filtered_verts[indices[indice + 2]]
-                            - filtered_verts[indices[indice + 1]];
-          const as::vec3 normal = as::vec3_cross(e1, e2);
-
-          vertex[indices[indice]].normal += normal;
-          vertex[indices[indice + 1]].normal += normal;
-          vertex[indices[indice + 2]].normal += normal;
-        }
+        PosNormalVertex* vertex = (PosNormalVertex*)mc_triangle_tvb.data;
+        int16_t* index_data = (int16_t*)tib.data;
 
         for (as::index i = 0; i < filtered_verts.size(); i++) {
-          vertex[i].normal = as::vec_normalize(vertex[i].normal);
+          vertex[i].normal = analytical_normals
+                             ? as::vec_normalize(filtered_norms[i])
+                             : as::vec3::zero();
+          vertex[i].position = filtered_verts[i];
+        }
+
+        for (as::index indice = 0; indice < indices.size(); indice++) {
+          index_data[indice] = indices[indice];
+        }
+
+        if (!analytical_normals) {
+          for (as::index indice = 0; indice < indices.size(); indice += 3) {
+            const as::vec3 e1 = filtered_verts[indices[indice]]
+                              - filtered_verts[indices[indice + 1]];
+            const as::vec3 e2 = filtered_verts[indices[indice + 2]]
+                              - filtered_verts[indices[indice + 1]];
+            const as::vec3 normal = as::vec3_cross(e1, e2);
+
+            vertex[indices[indice]].normal += normal;
+            vertex[indices[indice + 1]].normal += normal;
+            vertex[indices[indice + 2]].normal += normal;
+          }
+
+          for (as::index i = 0; i < filtered_verts.size(); i++) {
+            vertex[i].normal = as::vec_normalize(vertex[i].normal);
+          }
+        }
+
+        float model[16];
+        as::mat_to_arr(as::mat4::identity(), model);
+        bgfx::setTransform(model);
+
+        bgfx::setUniform(u_light_dir, (void*)&light_dir, 1);
+        bgfx::setUniform(u_camera_pos, (void*)&camera.look_at, 1);
+
+        bgfx::setIndexBuffer(&tib, 0, indices.size());
+        bgfx::setVertexBuffer(0, &mc_triangle_tvb, 0, filtered_verts.size());
+        bgfx::setState(BGFX_STATE_DEFAULT);
+        bgfx::submit(main_view, program_norm);
+
+        if (draw_normals) {
+          auto debug_lines =
+            dbg::DebugLines(main_view, simple_program.handle());
+          for (as::index i = 0; i < filtered_verts.size(); i++) {
+            debug_lines.addLine(
+              vertex[i].position, vertex[i].position + vertex[i].normal,
+              0xff000000);
+          }
+          debug_lines.submit();
         }
       }
 
-      float model[16];
-      as::mat_to_arr(as::mat4::identity(), model);
-      bgfx::setTransform(model);
-
-      bgfx::setIndexBuffer(&tib, 0, indices.size());
-      bgfx::setVertexBuffer(0, &mc_triangle_tvb, 0, filtered_verts.size());
-      bgfx::setState(BGFX_STATE_DEFAULT);
-      bgfx::submit(main_view, program_norm);
-
-      if (draw_normals) {
-        auto debug_lines = dbg::DebugLines(main_view, simple_program.handle());
-        for (as::index i = 0; i < filtered_verts.size(); i++) {
-          debug_lines.addLine(
-            vertex[i].position, vertex[i].position + vertex[i].normal,
-            0xff000000);
-        }
-        debug_lines.submit();
-      }
-
-      bgfx::setState(BGFX_STATE_DEFAULT);
-
-      bgfx::setUniform(u_light_dir, (void*)&light_dir, 1);
-      bgfx::setUniform(u_camera_pos, (void*)&camera.look_at, 1);
+      bgfx::touch(main_view);
 
       const double to_ms = 1000.0 / freq;
       auto marching_cube_time =
@@ -544,11 +634,13 @@ int main(int argc, char** argv)
       light_dir = as::vec_from_arr(light_dir_arr);
 
       ImGui::SliderFloat("Threshold", &threshold, 0.0f, 10.0f);
-      ImGui::SliderFloat("Back", &camera_adjust, 0.0f, 100.0f);
+      ImGui::SliderFloat("Back Noise", &camera_adjust_noise, 0.0f, 100.0f);
       ImGui::SliderFloat("Scale", &scale, 0.0f, 100.0f);
       ImGui::SliderFloat("Tesselation", &tesselation, 0.001f, 10.0f);
       ImGui::Checkbox("Draw Normals", &draw_normals);
       ImGui::Checkbox("Analytical Normals", &analytical_normals);
+      static const char* scenes[] = {"Noise", "Sphere"};
+      ImGui::Combo("Curve Order", scene_alias, scenes, std::size(scenes));
     }
 
     // gizmo cube
