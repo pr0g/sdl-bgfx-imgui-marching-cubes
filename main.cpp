@@ -689,6 +689,8 @@ int main(int argc, char** argv)
   mc::destroyCellPositions(cell_positions, dimension);
   mc::destroyPointVolume(points, dimension);
 
+  simple_program.deinit();
+
   bgfx::destroy(u_camera_pos);
   bgfx::destroy(u_light_dir);
   bgfx::destroy(cube_col_vbh);
